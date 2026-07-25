@@ -34,6 +34,7 @@ class GameViewModelState {
     this.timeLeft,
     this.isTimeOut = false,
     this.isProgressSaved = false,
+    this.isSuperHardModeEnabled = false,
   });
 
   final GameLevel? level;
@@ -51,6 +52,7 @@ class GameViewModelState {
   final int? timeLeft;
   final bool isTimeOut;
   final bool isProgressSaved;
+  final bool isSuperHardModeEnabled;
 
   bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut;
 
@@ -70,6 +72,7 @@ class GameViewModelState {
     int? Function()? timeLeft,
     bool? isTimeOut,
     bool? isProgressSaved,
+    bool? isSuperHardModeEnabled,
   }) {
     return GameViewModelState(
       level: level ?? this.level,
@@ -90,6 +93,7 @@ class GameViewModelState {
       timeLeft: timeLeft != null ? timeLeft() : this.timeLeft,
       isTimeOut: isTimeOut ?? this.isTimeOut,
       isProgressSaved: isProgressSaved ?? this.isProgressSaved,
+      isSuperHardModeEnabled: isSuperHardModeEnabled ?? this.isSuperHardModeEnabled,
     );
   }
 }
@@ -148,7 +152,12 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
     try {
       final level = _levelGenerator.generate(levelNumber);
-      state = GameViewModelState(level: level);
+      final isSuperHard = _progressRepository.isSuperHardModeEnabled();
+      debugPrint('LOAD LEVEL: isSuperHard = $isSuperHard');
+      state = GameViewModelState(
+        level: level,
+        isSuperHardModeEnabled: isSuperHard,
+      );
 
       if (_shouldHaveTimer(isRandom: false, levelNumber: levelNumber, difficulty: '')) {
         _startTimer(_calculateTimerDuration(level.colorCount));
@@ -161,11 +170,13 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   Future<void> loadRandomLevel(String difficulty, {int? seed}) async {
     _timer?.cancel();
     final int levelSeed = seed ?? DateTime.now().millisecondsSinceEpoch;
+    final isSuperHard = _progressRepository.isSuperHardModeEnabled();
     state = GameViewModelState(
       isLoading: true,
       isRandomMode: true,
       randomDifficulty: difficulty,
       randomSeed: levelSeed,
+      isSuperHardModeEnabled: isSuperHard,
     );
 
     try {
@@ -247,14 +258,22 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
   Future<void> _pourWater(int fromIndex, int toIndex) async {
     if (state.level == null) return;
-
     HapticFeedback.mediumImpact();
+    state = state.copyWith(
+      pouringFromIndex: () => fromIndex,
+      pouringToIndex: () => toIndex,
+    );
+  }
+
+  Future<void> completePendingPour() async {
+    if (state.pouringFromIndex == null || state.pouringToIndex == null || state.level == null) return;
+    final fromIndex = state.pouringFromIndex!;
+    final toIndex = state.pouringToIndex!;
 
     final fromTube = state.level!.tubes[fromIndex];
     final toTube = state.level!.tubes[toIndex];
-
     final colorToMove = fromTube.topColor!;
-    
+
     int countToMove = 0;
     for (int i = fromTube.colors.length - 1; i >= 0; i--) {
       if (fromTube.colors[i] == colorToMove) {
@@ -270,23 +289,16 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     if (pourCount == 0) {
       state = state.copyWith(
         selectedTubeIndex: () => null,
+        pouringFromIndex: () => null,
+        pouringToIndex: () => null,
       );
       return;
     }
 
-    // Save snapshot before pouring
     final snapshot = MoveSnapshot(
       tubes: state.level!.tubes.map((t) => Tube(colors: List<Color>.from(t.colors), capacity: t.capacity)).toList(),
       moveCount: state.moveCount,
     );
-
-    // Set pouring indices for animation
-    state = state.copyWith(
-      pouringFromIndex: () => fromIndex,
-      pouringToIndex: () => toIndex,
-    );
-
-    // Transfer water instantly
 
     final newFromColors = List<Color>.from(fromTube.colors)
       ..removeRange(fromTube.colors.length - pourCount, fromTube.colors.length);

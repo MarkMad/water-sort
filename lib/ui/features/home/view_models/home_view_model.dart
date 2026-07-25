@@ -11,6 +11,7 @@ class HomeViewModelState {
     this.profiles = const [],
     this.isLoading = false,
     this.isTimerEnabled = true,
+    this.isSuperHardModeEnabled = false,
   });
 
   final UserProgress? progress;
@@ -18,6 +19,7 @@ class HomeViewModelState {
   final List<UserProfile> profiles;
   final bool isLoading;
   final bool isTimerEnabled;
+  final bool isSuperHardModeEnabled;
 
   HomeViewModelState copyWith({
     UserProgress? progress,
@@ -25,6 +27,7 @@ class HomeViewModelState {
     List<UserProfile>? profiles,
     bool? isLoading,
     bool? isTimerEnabled,
+    bool? isSuperHardModeEnabled,
   }) {
     return HomeViewModelState(
       progress: progress ?? this.progress,
@@ -32,6 +35,7 @@ class HomeViewModelState {
       profiles: profiles ?? this.profiles,
       isLoading: isLoading ?? this.isLoading,
       isTimerEnabled: isTimerEnabled ?? this.isTimerEnabled,
+      isSuperHardModeEnabled: isSuperHardModeEnabled ?? this.isSuperHardModeEnabled,
     );
   }
 }
@@ -49,11 +53,13 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
       final activeProfile = await _progressRepository.getActiveProfile();
       final profiles = await _progressRepository.getProfiles();
       final isTimerEnabled = _progressRepository.isTimerEnabled();
+      final isSuperHardModeEnabled = _progressRepository.isSuperHardModeEnabled();
       state = state.copyWith(
         progress: progress,
         activeProfile: () => activeProfile,
         profiles: profiles,
         isTimerEnabled: isTimerEnabled,
+        isSuperHardModeEnabled: isSuperHardModeEnabled,
         isLoading: false,
       );
     } catch (e) {
@@ -65,6 +71,12 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
     final newValue = !state.isTimerEnabled;
     await _progressRepository.setTimerEnabled(newValue);
     state = state.copyWith(isTimerEnabled: newValue);
+  }
+
+  Future<void> toggleSuperHardMode() async {
+    final newValue = !state.isSuperHardModeEnabled;
+    await _progressRepository.setSuperHardModeEnabled(newValue);
+    state = state.copyWith(isSuperHardModeEnabled: newValue);
   }
 
   Future<void> resetProgress() async {

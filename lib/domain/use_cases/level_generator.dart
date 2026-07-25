@@ -24,6 +24,7 @@ class LevelGenerator {
       capacity: capacity,
       colors: colors,
       random: random,
+      levelNumber: levelNumber,
     );
 
     return GameLevel(
@@ -46,6 +47,7 @@ class LevelGenerator {
       capacity: capacity,
       colors: colors,
       random: random,
+      levelNumber: -1,
     );
 
     return GameLevel(
@@ -91,15 +93,34 @@ class LevelGenerator {
     required int capacity,
     required List<Color> colors,
     required Random random,
+    required int levelNumber,
   }) {
     while (true) {
-      final colorSegments = <Color>[];
+      final List<List<Color>> chunks = [];
       for (final color in colors) {
-        for (int i = 0; i < capacity; i++) {
-          colorSegments.add(color);
+        if (levelNumber > 0 && levelNumber <= 3) {
+          chunks.add([color, color]);
+          chunks.add([color, color]);
+        } else if (levelNumber > 0 && levelNumber <= 6) {
+          if (random.nextBool()) {
+            chunks.add([color, color]);
+            chunks.add([color, color]);
+          } else {
+            chunks.add([color]);
+            chunks.add([color]);
+            chunks.add([color]);
+            chunks.add([color]);
+          }
+        } else {
+          chunks.add([color]);
+          chunks.add([color]);
+          chunks.add([color]);
+          chunks.add([color]);
         }
       }
-      colorSegments.shuffle(random);
+
+      chunks.shuffle(random);
+      final colorSegments = chunks.expand((chunk) => chunk).toList();
 
       final tubeColors = List.generate(
         tubeCount,

@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flame/game.dart';
 
 import 'package:watersort/ui/core/theme/app_colors.dart';
 import 'package:watersort/ui/core/widgets/tangible_button.dart';
-import 'package:watersort/ui/core/widgets/tube_widget.dart';
 import 'package:watersort/ui/features/game/view_models/game_view_model.dart';
 import 'package:watersort/ui/providers.dart';
 import 'package:watersort/ui/features/support/views/support_view.dart';
+import 'package:watersort/ui/features/game/views/water_sort_game.dart';
 
 class GameView extends ConsumerStatefulWidget {
   const GameView({
@@ -25,6 +26,8 @@ class GameView extends ConsumerStatefulWidget {
 }
 
 class _GameViewState extends ConsumerState<GameView> {
+  WaterSortGame? _game;
+
   @override
   void initState() {
     super.initState();
@@ -40,6 +43,21 @@ class _GameViewState extends ConsumerState<GameView> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(gameViewModelProvider);
+    if (state.level != null) {
+      if (_game == null) {
+        _game = WaterSortGame(
+          initialState: state,
+          onTubeTap: (index) {
+            ref.read(gameViewModelProvider.notifier).selectTube(index);
+          },
+          onPourComplete: () {
+            ref.read(gameViewModelProvider.notifier).completePendingPour();
+          },
+        );
+      } else {
+        _game!.updateState(state);
+      }
+    }
 
     ref.listen<GameViewModelState>(gameViewModelProvider, (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
@@ -213,99 +231,12 @@ class _GameViewState extends ConsumerState<GameView> {
             ],
           ),
         ),
-
-        // Tubes Container
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final double containerWidth = constraints.maxWidth;
-                final double containerHeight = constraints.maxHeight;
-
-                final int tubeCount = level.tubes.length;
-                final int maxPerRow;
-                if (tubeCount <= 5) {
-                  maxPerRow = tubeCount;
-                } else if (tubeCount <= 8) {
-                  maxPerRow = 4;
-                } else {
-                  maxPerRow = 5;
-                }
-                final int rows = (tubeCount / maxPerRow).ceil();
-                final int cols = (tubeCount / rows).ceil();
-
-                const double spacing = 8.0;
-                const double aspectRatio = 3.2;
-
-                final double maxTubeWidth = (containerWidth - (cols + 1) * spacing) / cols;
-                final double maxTubeHeight = (containerHeight - rows * spacing) / rows;
-
-                double tubeWidth = maxTubeWidth.clamp(0.0, 52.0);
-                double tubeHeight = tubeWidth * aspectRatio;
-
-                if (tubeHeight > maxTubeHeight) {
-                  tubeHeight = maxTubeHeight.clamp(0.0, 166.0);
-                  tubeWidth = tubeHeight / aspectRatio;
-                }
-
-                final List<List<int>> tubeRows = [];
-                for (int r = 0; r < rows; r++) {
-                  final start = r * maxPerRow;
-                  final end = (start + maxPerRow).clamp(0, tubeCount);
-                  tubeRows.add(List.generate(end - start, (i) => start + i));
-                }
-
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: tubeRows.map((rowIndices) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: spacing / 2),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: rowIndices.map((i) {
-                          final isSource = state.pouringFromIndex == i;
-                          final isTarget = state.pouringToIndex == i;
-                          final pourToLeft = isSource &&
-                              state.pouringToIndex != null &&
-                              state.pouringToIndex! < i;
-
-                          Offset pouringOffset = Offset.zero;
-                          if (isSource && state.pouringToIndex != null) {
-                            final from = i;
-                            final to = state.pouringToIndex!;
-                            final fromRow = from ~/ maxPerRow;
-                            final fromCol = from % maxPerRow;
-                            final toRow = to ~/ maxPerRow;
-                            final toCol = to % maxPerRow;
-                            final colDiff = toCol - fromCol;
-                            final rowDiff = toRow - fromRow;
-                            final dx = colDiff * (tubeWidth + spacing);
-                            final dy = rowDiff * (tubeHeight + spacing) - tubeHeight - 12.0;
-                            pouringOffset = Offset(dx, dy);
-                          }
-
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: spacing / 2),
-                            child: TubeWidget(
-                              tube: level.tubes[i],
-                              isSelected: state.selectedTubeIndex == i,
-                              isPouringSource: isSource,
-                              isPouringTarget: isTarget,
-                              pourToLeft: pourToLeft,
-                              pouringOffset: pouringOffset,
-                              height: tubeHeight,
-                              width: tubeWidth,
-                              onTap: () => ref.read(gameViewModelProvider.notifier).selectTube(i),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    );
-                  }).toList(),
-                );
-              },
-            ),
+            child: _game != null
+                ? GameWidget(game: _game!)
+                : const SizedBox.shrink(),
           ),
         ),
       ],
@@ -464,21 +395,29 @@ class _GameViewState extends ConsumerState<GameView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AppColors.accent.withOpacity(0.08),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: AppColors.accent.withOpacity(0.3),
-                    width: 1.0,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.emoji_events_rounded,
-                  color: AppColors.accent,
-                  size: 56,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(3, (index) {
+                  final moves = state.moveCount;
+                  final optimal = state.level?.optimalMoves ?? 0;
+                  final int filledStars;
+                  if (moves < optimal) {
+                    filledStars = 3;
+                  } else if (moves == optimal) {
+                    filledStars = 2;
+                  } else {
+                    filledStars = 1;
+                  }
+                  final isFilled = index < filledStars;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Icon(
+                      Icons.star_rounded,
+                      color: isFilled ? AppColors.accent : const Color(0xFF333333),
+                      size: index == 1 ? 54 : 44,
+                    ),
+                  );
+                }),
               ),
               const SizedBox(height: 20),
               Text(
@@ -500,18 +439,6 @@ class _GameViewState extends ConsumerState<GameView> {
                 style: const TextStyle(
                   fontFamily: 'BebasNeue',
                   fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.subtext,
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'The optimal number of moves for this level is ${state.level?.optimalMoves ?? 0}.',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontFamily: 'BebasNeue',
-                  fontSize: 14,
                   fontWeight: FontWeight.w500,
                   color: AppColors.subtext,
                   height: 1.2,
@@ -555,7 +482,7 @@ class _GameViewState extends ConsumerState<GameView> {
                   ),
                   const SizedBox(height: 12),
                   TangibleButton(
-                    text: 'Buy Us a Coffee ☕',
+                    text: 'Buy Me a Coffee ☕',
                     isSecondary: true,
                     height: 50,
                     onPressed: () {

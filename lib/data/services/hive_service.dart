@@ -74,6 +74,7 @@ class HiveService {
   }
 
   static const String _timerEnabledKey = 'timer_enabled';
+  static const String _superHardModeKey = 'super_hard_mode';
 
   Future<String?> getActiveProfileId() async {
     return _settingsBox.get(_activeProfileKey) as String?;
@@ -101,5 +102,13 @@ class HiveService {
 
   Future<void> setTimerEnabled(bool enabled) async {
     await _settingsBox.put(_timerEnabledKey, enabled);
+  }
+
+  bool isSuperHardModeEnabled() {
+    return _settingsBox.get(_superHardModeKey, defaultValue: false) as bool;
+  }
+
+  Future<void> setSuperHardModeEnabled(bool enabled) async {
+    await _settingsBox.put(_superHardModeKey, enabled);
   }
 }

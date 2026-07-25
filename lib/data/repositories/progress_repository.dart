@@ -64,6 +64,14 @@ class ProgressRepository {
     await _hiveService.setTimerEnabled(enabled);
   }
 
+  bool isSuperHardModeEnabled() {
+    return _hiveService.isSuperHardModeEnabled();
+  }
+
+  Future<void> setSuperHardModeEnabled(bool enabled) async {
+    await _hiveService.setSuperHardModeEnabled(enabled);
+  }
+
   Future<List<UserProfile>> getProfiles() async {
     return _hiveService.getProfiles();
   }

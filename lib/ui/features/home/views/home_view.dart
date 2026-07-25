@@ -10,6 +10,7 @@ import 'package:watersort/ui/features/level_select/views/level_select_view.dart'
 import 'package:watersort/ui/providers.dart';
 import 'package:watersort/domain/models/user_profile.dart';
 import 'package:watersort/ui/features/support/views/support_view.dart';
+import 'package:watersort/ui/features/home/views/settings_view.dart';
 
 class HomeView extends ConsumerStatefulWidget {
   const HomeView({super.key});
@@ -295,11 +296,15 @@ class _HomeViewState extends ConsumerState<HomeView> {
 
               const SizedBox(height: 12),
 
-              // Timer Toggle Button (Secondary Button)
               TangibleButton(
-                text: state.isTimerEnabled ? 'Timer: ON' : 'Timer: OFF',
+                text: 'Settings',
                 isSecondary: true,
-                onPressed: () => ref.read(homeViewModelProvider.notifier).toggleTimer(),
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsView(),
+                  ),
+                ),
               ),
               const Spacer(),
             ],

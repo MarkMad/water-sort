@@ -125,19 +125,8 @@ class SupportView extends StatelessWidget {
 
                     _supportOption(
                       context,
-                      title: 'GitHub Sponsors',
-                      description: '100% goes to the developer',
-                      icon: Icons.favorite_rounded,
-                      color: const Color(0xFFEA4AAA),
-                      url: 'https://github.com/sponsors/sidhant947',
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    _supportOption(
-                      context,
                       title: 'Buy Me a Coffee',
-                      description: 'Quick tip to show appreciation',
+                      description: 'Quick tip (charges me a 5% cut)',
                       icon: Icons.coffee_rounded,
                       color: const Color(0xFFFFDD00),
                       url: 'https://buymeacoffee.com/sidhant947',
@@ -148,7 +137,7 @@ class SupportView extends StatelessWidget {
                     _supportOption(
                       context,
                       title: 'Ko-fi',
-                      description: 'Simple one-time support',
+                      description: 'Simple support (doesn\'t charge any cut)',
                       icon: Icons.local_cafe_rounded,
                       color: const Color(0xFF29abe0),
                       url: 'https://ko-fi.com/sidhant947',
@@ -158,6 +147,17 @@ class SupportView extends StatelessWidget {
 
                     // Section: Monthly Support
                     _sectionHeader('RECURRING SUPPORT'),
+
+                    const SizedBox(height: 12),
+
+                    _supportOption(
+                      context,
+                      title: 'GitHub Sponsors',
+                      description: 'Monthly support (100% goes to developer)',
+                      icon: Icons.favorite_rounded,
+                      color: const Color(0xFFEA4AAA),
+                      url: 'https://github.com/sponsors/sidhant947',
+                    ),
 
                     const SizedBox(height: 12),
 

@@ -1,0 +1,803 @@
+import 'dart:math' as math;
+import 'package:flame/components.dart';
+import 'package:flame/game.dart';
+import 'package:flame/events.dart';
+import 'package:flutter/material.dart';
+import 'package:watersort/domain/models/tube.dart';
+import 'package:watersort/ui/features/game/view_models/game_view_model.dart';
+
+class WaterSortGame extends FlameGame with TapCallbacks {
+  WaterSortGame({
+    required GameViewModelState initialState,
+    required this.onTubeTap,
+    required this.onPourComplete,
+  }) : _state = initialState;
+
+  GameViewModelState _state;
+  final Function(int) onTubeTap;
+  final VoidCallback onPourComplete;
+
+  final List<TubeComponent> _tubes = [];
+  ActivePourAnimation? _activePour;
+
+  final List<GameParticle> _particles = [];
+  final List<TapRipple> _ripples = [];
+
+  void updateState(GameViewModelState newState) {
+    if (_state.level != newState.level ||
+        _state.selectedTubeIndex != newState.selectedTubeIndex ||
+        _state.isSuperHardModeEnabled != newState.isSuperHardModeEnabled) {
+      _state = newState;
+      _syncTubes();
+    }
+
+    if (newState.pouringFromIndex != null && newState.pouringToIndex != null && _activePour == null) {
+      _startLevelAnimation(newState.pouringFromIndex!, newState.pouringToIndex!);
+    }
+  }
+
+  void _syncTubes() {
+    final level = _state.level;
+    if (level == null) return;
+
+    for (int i = 0; i < _tubes.length; i++) {
+      if (i < level.tubes.length) {
+        final newTube = level.tubes[i];
+        final oldTube = _tubes[i].tube;
+
+        if (newTube.isSolved && !oldTube.isSolved && !newTube.isEmpty) {
+          _spawnVictoryBurst(_tubes[i], newTube.topColor ?? const Color(0xFF00FFCC));
+        }
+
+        _tubes[i].tube = newTube;
+        _tubes[i].isSelected = _state.selectedTubeIndex == i;
+        _tubes[i].isSuperHardModeEnabled = _state.isSuperHardModeEnabled;
+      }
+    }
+  }
+
+  void _startLevelAnimation(int fromIndex, int toIndex) {
+    if (fromIndex >= _tubes.length || toIndex >= _tubes.length) return;
+
+    final fromComp = _tubes[fromIndex];
+    final toComp = _tubes[toIndex];
+
+    final fromTube = fromComp.tube;
+    final toTube = toComp.tube;
+
+    if (fromTube.isEmpty) return;
+    final colorToMove = fromTube.topColor!;
+
+    int countToMove = 0;
+    for (int i = fromTube.colors.length - 1; i >= 0; i--) {
+      if (fromTube.colors[i] == colorToMove) {
+        countToMove++;
+      } else {
+        break;
+      }
+    }
+
+    final availableSpace = toTube.capacity - toTube.colors.length;
+    final pourCount = countToMove.clamp(0, availableSpace);
+
+    if (pourCount > 0) {
+      _activePour = ActivePourAnimation(
+        fromComponent: fromComp,
+        toComponent: toComp,
+        color: colorToMove,
+        pourCount: pourCount,
+      );
+    }
+  }
+
+  void _spawnVictoryBurst(TubeComponent comp, Color color) {
+    final random = math.Random();
+    final Vector2 spawnPos = comp.position + Vector2(comp.size.x / 2, 0.0);
+
+    for (int i = 0; i < 35; i++) {
+      final double angle = -math.pi / 2 + (random.nextDouble() - 0.5) * 1.2;
+      final double speed = 120.0 + random.nextDouble() * 180.0;
+      final double maxLife = 0.8 + random.nextDouble() * 0.6;
+
+      final velocity = Vector2(math.cos(angle) * speed, math.sin(angle) * speed);
+
+      _particles.add(
+        GameParticle(
+          position: spawnPos.clone(),
+          velocity: velocity,
+          color: random.nextBool() ? color : const Color(0xFFFFD700),
+          size: 4.0 + random.nextDouble() * 4.0,
+          life: 0.0,
+          maxLife: maxLife,
+          angle: random.nextDouble() * math.pi * 2,
+          spinSpeed: (random.nextDouble() - 0.5) * 8.0,
+          isStar: random.nextBool(),
+        ),
+      );
+    }
+  }
+
+  @override
+  Color backgroundColor() => const Color(0xFF101014);
+
+  @override
+  void onGameResize(Vector2 size) {
+    super.onGameResize(size);
+    _layoutTubes();
+  }
+
+  void _layoutTubes() {
+    final level = _state.level;
+    if (level == null) return;
+
+    final double containerWidth = size.x;
+    final double containerHeight = size.y;
+
+    final int tubeCount = level.tubes.length;
+    final int maxPerRow = tubeCount <= 5 ? tubeCount : (tubeCount <= 8 ? 4 : 5);
+    final int rows = (tubeCount / maxPerRow).ceil();
+    final int cols = (tubeCount / rows).ceil();
+
+    const double spacing = 8.0;
+    const double aspectRatio = 3.2;
+
+    final double maxTubeWidth = (containerWidth - (cols + 1) * spacing) / cols;
+    final double maxTubeHeight = (containerHeight - rows * spacing) / rows;
+
+    double tubeWidth = maxTubeWidth.clamp(0.0, 52.0);
+    double tubeHeight = tubeWidth * aspectRatio;
+
+    if (tubeHeight > maxTubeHeight) {
+      tubeHeight = maxTubeHeight.clamp(0.0, 166.0);
+      tubeWidth = tubeHeight / aspectRatio;
+    }
+
+    final double totalGridHeight = rows * tubeHeight + (rows - 1) * spacing;
+    final double startY = (containerHeight - totalGridHeight) / 2;
+
+    if (_tubes.length != tubeCount) {
+      removeAll(_tubes);
+      _tubes.clear();
+
+      for (int i = 0; i < tubeCount; i++) {
+        final comp = TubeComponent(
+          index: i,
+          tube: level.tubes[i],
+          isSelected: _state.selectedTubeIndex == i,
+        )..isSuperHardModeEnabled = _state.isSuperHardModeEnabled;
+        _tubes.add(comp);
+        add(comp);
+      }
+    }
+
+    for (int i = 0; i < tubeCount; i++) {
+      final r = i ~/ maxPerRow;
+      final c = i % maxPerRow;
+
+      final rowStartCol = r * maxPerRow;
+      final rowEndCol = math.min((r + 1) * maxPerRow, tubeCount);
+      final colsInThisRow = rowEndCol - rowStartCol;
+      final double rowWidth = colsInThisRow * tubeWidth + (colsInThisRow - 1) * spacing;
+      final double rowStartX = (containerWidth - rowWidth) / 2;
+
+      final double px = rowStartX + c * (tubeWidth + spacing);
+      final double py = startY + r * (tubeHeight + spacing);
+
+      _tubes[i].size = Vector2(tubeWidth, tubeHeight);
+      _tubes[i].originalPosition = Vector2(px, py);
+      _tubes[i].position = _tubes[i].originalPosition;
+      _tubes[i].angle = 0;
+    }
+  }
+
+  @override
+  void onTapDown(TapDownEvent event) {
+    if (_activePour != null) return;
+    for (final tube in _tubes) {
+      if (tube.containsPoint(event.localPosition)) {
+        final center = tube.position + tube.size / 2;
+        _ripples.add(
+          TapRipple(
+            position: center,
+            radius: 5.0,
+            maxRadius: tube.size.x * 1.3,
+            life: 0.0,
+            maxLife: 0.3,
+            color: const Color(0xFF00FFCC),
+          ),
+        );
+        onTubeTap(tube.index);
+        break;
+      }
+    }
+  }
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+
+    if (_activePour != null) {
+      final done = _activePour!.update(dt);
+      if (done) {
+        _activePour!.reset();
+        _activePour = null;
+        _syncTubes();
+        onPourComplete();
+      }
+    }
+
+    for (int i = _particles.length - 1; i >= 0; i--) {
+      final p = _particles[i];
+      p.life += dt;
+      if (p.life >= p.maxLife) {
+        _particles.removeAt(i);
+      } else {
+        p.position += p.velocity * dt;
+        p.velocity.y += 280.0 * dt;
+        p.angle += p.spinSpeed * dt;
+      }
+    }
+
+    for (int i = _ripples.length - 1; i >= 0; i--) {
+      final r = _ripples[i];
+      r.life += dt;
+      if (r.life >= r.maxLife) {
+        _ripples.removeAt(i);
+      } else {
+        final double t = r.life / r.maxLife;
+        r.radius = r.radius + (r.maxRadius - r.radius) * t;
+      }
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    super.render(canvas);
+
+    for (final r in _ripples) {
+      final double progress = (r.life / r.maxLife).clamp(0.0, 1.0);
+      final double opacity = 1.0 - progress;
+
+      final paint = Paint()
+        ..color = r.color.withValues(alpha: opacity * 0.4)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.4 - (1.2 * progress);
+      canvas.drawCircle(Offset(r.position.x, r.position.y), r.radius, paint);
+
+      final glowPaint = Paint()
+        ..color = r.color.withValues(alpha: opacity * 0.2)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = r.radius * 0.15
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6.0);
+      canvas.drawCircle(Offset(r.position.x, r.position.y), r.radius, glowPaint);
+    }
+
+    for (final p in _particles) {
+      final double progress = (p.life / p.maxLife).clamp(0.0, 1.0);
+      final double opacity = 1.0 - progress;
+
+      canvas.save();
+      canvas.translate(p.position.x, p.position.y);
+      canvas.rotate(p.angle);
+
+      final paint = Paint()
+        ..color = p.color.withValues(alpha: opacity)
+        ..style = PaintingStyle.fill;
+
+      if (p.isStar) {
+        final path = Path();
+        final double rOuter = p.size;
+        final double rInner = p.size * 0.4;
+        for (int step = 0; step < 5; step++) {
+          final double outerAngle = -math.pi / 2 + step * (math.pi * 2 / 5);
+          final double innerAngle = -math.pi / 2 + (step + 0.5) * (math.pi * 2 / 5);
+          if (step == 0) {
+            path.moveTo(math.cos(outerAngle) * rOuter, math.sin(outerAngle) * rOuter);
+          } else {
+            path.lineTo(math.cos(outerAngle) * rOuter, math.sin(outerAngle) * rOuter);
+          }
+          path.lineTo(math.cos(innerAngle) * rInner, math.sin(innerAngle) * rInner);
+        }
+        path.close();
+        canvas.drawPath(path, paint);
+      } else {
+        canvas.drawRect(Rect.fromCenter(center: Offset.zero, width: p.size * 1.5, height: p.size * 0.6), paint);
+      }
+
+      canvas.restore();
+    }
+  }
+}
+
+class TubeComponent extends PositionComponent {
+  TubeComponent({
+    required this.index,
+    required this.tube,
+    required this.isSelected,
+  });
+
+  final int index;
+  Tube tube;
+  bool isSelected;
+  bool isSuperHardModeEnabled = false;
+
+  Vector2 originalPosition = Vector2.zero();
+  double time = 0.0;
+  final int bubbleSeed = math.Random().nextInt(1000000);
+
+  bool isAnimatingSource = false;
+  bool isAnimatingTarget = false;
+  double animationProgress = 0.0;
+  Color? animatingColor;
+  int animatingPourCount = 0;
+
+  bool _wasSelected = false;
+  double sloshDisplacement = 0.0;
+  double sloshVelocity = 0.0;
+
+  @override
+  void update(double dt) {
+    super.update(dt);
+    time += dt;
+
+    if (isSelected != _wasSelected) {
+      _wasSelected = isSelected;
+      sloshVelocity += isSelected ? 32.0 : -24.0;
+    }
+
+    final double springConstant = 120.0;
+    final double damping = 4.5;
+    final double acceleration = -springConstant * sloshDisplacement - damping * sloshVelocity;
+    sloshVelocity += acceleration * dt;
+    sloshDisplacement += sloshVelocity * dt;
+
+    if (isSelected) {
+      position.y = originalPosition.y - 18 + 3.0 * math.sin(time * 6.0);
+    } else if (position.y != originalPosition.y) {
+      position.y = originalPosition.y;
+    }
+  }
+
+  IconData _getIconForColor(Color color) {
+    final hex = color.toARGB32() & 0xFFFFFF;
+    switch (hex) {
+      case 0xE53935: return Icons.favorite_rounded;
+      case 0x1E88E5: return Icons.water_drop_rounded;
+      case 0x43A047: return Icons.eco_rounded;
+      case 0xFDD835: return Icons.wb_sunny_rounded;
+      case 0xFFFF8F00: return Icons.star_rounded;
+      case 0x8E24AA: return Icons.dark_mode_rounded;
+      case 0xEC407A: return Icons.auto_awesome_rounded;
+      case 0x00ACC1: return Icons.ac_unit_rounded;
+      case 0xB39DDB: return Icons.palette_rounded;
+      case 0xFF7043: return Icons.whatshot_rounded;
+      case 0x5C6BC0: return Icons.cloud_rounded;
+      case 0x009688: return Icons.diamond_rounded;
+      case 0x8D6E63: return Icons.cookie_rounded;
+      case 0xB71C1C: return Icons.bolt_rounded;
+      case 0xAD1457: return Icons.nightlight_rounded;
+      case 0x9E9D24: return Icons.grass_rounded;
+      default: return Icons.brightness_1_rounded;
+    }
+  }
+
+  @override
+  void render(Canvas canvas) {
+    final double bottomRadius = size.x / 2;
+    const double topRadius = 6.0;
+    const double borderWidth = 1.8;
+
+    final paint = Paint()
+      ..color = const Color(0xFF16161C).withValues(alpha: 0.85)
+      ..style = PaintingStyle.fill;
+
+    final RRect outerRRect = RRect.fromRectAndCorners(
+      Rect.fromLTWH(0, 0, size.x, size.y),
+      bottomLeft: Radius.circular(bottomRadius),
+      bottomRight: Radius.circular(bottomRadius),
+      topLeft: const Radius.circular(topRadius),
+      topRight: const Radius.circular(topRadius),
+    );
+    canvas.drawRRect(outerRRect, paint);
+
+    canvas.save();
+    canvas.clipRRect(RRect.fromRectAndCorners(
+      Rect.fromLTWH(borderWidth, borderWidth, size.x - borderWidth * 2, size.y - borderWidth * 2),
+      bottomLeft: Radius.circular(bottomRadius - borderWidth),
+      bottomRight: Radius.circular(bottomRadius - borderWidth),
+      topLeft: Radius.circular(topRadius - borderWidth),
+      topRight: Radius.circular(topRadius - borderWidth),
+    ));
+
+    _renderLiquid(canvas);
+    _renderIcons(canvas);
+    _renderBubbles(canvas);
+    _renderHighlights(canvas);
+
+    canvas.restore();
+
+    final glowBorderWidth = isSelected ? 2.8 : borderWidth;
+    final borderPaint = Paint()
+      ..color = isSelected
+          ? Color.fromARGB(
+              255,
+              (128 + 127 * math.sin(time * 5.0)).round(),
+              255,
+              (200 + 55 * math.sin(time * 5.0)).round(),
+            )
+          : const Color(0xFF2E2E38)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = glowBorderWidth;
+
+    if (isSelected) {
+      final glowPaint = Paint()
+        ..color = const Color(0xFF00FFCC).withValues(alpha: 0.35 + 0.15 * math.sin(time * 5.0))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = glowBorderWidth + 4.0
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
+      canvas.drawRRect(outerRRect, glowPaint);
+    }
+
+    canvas.drawRRect(outerRRect, borderPaint);
+
+    final rimPaint = Paint()
+      ..color = const Color(0xFF1F1F28)
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTRB(-2, -2.5, size.x + 2, 2.5),
+        const Radius.circular(2.5),
+      ),
+      rimPaint,
+    );
+
+    final rimBorderPaint = Paint()
+      ..color = isSelected ? const Color(0xFF00FFCC) : const Color(0xFF383845)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTRB(-2, -2.5, size.x + 2, 2.5),
+        const Radius.circular(2.5),
+      ),
+      rimBorderPaint,
+    );
+  }
+
+  void _renderLiquid(Canvas canvas) {
+    final double segmentHeight = (size.y - 12) / tube.capacity;
+
+    double liquidHeight = tube.colors.length.toDouble();
+    if (isAnimatingSource) {
+      liquidHeight = tube.colors.length - (animatingPourCount * animationProgress);
+    } else if (isAnimatingTarget) {
+      liquidHeight = tube.colors.length + (animatingPourCount * animationProgress);
+    }
+
+    if (liquidHeight <= 0.0) return;
+
+    final int maxSegmentsToDraw = liquidHeight.ceil();
+
+    final List<Color> visibleColors = [];
+    for (int j = 0; j < maxSegmentsToDraw; j++) {
+      if (j < tube.colors.length) {
+        visibleColors.add(tube.colors[j]);
+      } else {
+        visibleColors.add(animatingColor ?? Colors.transparent);
+      }
+    }
+
+    for (int i = 0; i < maxSegmentsToDraw; i++) {
+      Color color = visibleColors[i];
+      if (isSuperHardModeEnabled && visibleColors.isNotEmpty) {
+        final Color topColor = visibleColors.last;
+        int firstDifferentIndex = -1;
+        for (int j = visibleColors.length - 1; j >= 0; j--) {
+          if (visibleColors[j] != topColor) {
+            firstDifferentIndex = j;
+            break;
+          }
+        }
+        if (i <= firstDifferentIndex) {
+          color = const Color(0xFFFFFFFF);
+        }
+      }
+
+      double heightFactor = 1.0;
+      if (i >= liquidHeight - 1 && i < liquidHeight) {
+        heightFactor = liquidHeight - i;
+      }
+
+      if (heightFactor <= 0.0) continue;
+
+      double bottomY = size.y - (i * segmentHeight);
+      double topY = bottomY - (segmentHeight * heightFactor);
+
+      final double currentSlosh = (i == maxSegmentsToDraw - 1) ? sloshDisplacement.clamp(-15.0, 15.0) : 0.0;
+      final double leftY = topY + currentSlosh;
+      final double rightY = topY - currentSlosh;
+
+      final path = Path();
+      path.moveTo(0, bottomY);
+
+      if (i == 0) {
+        path.lineTo(size.x, bottomY);
+      } else {
+        path.quadraticBezierTo(size.x / 2, bottomY + 3.5, size.x, bottomY);
+      }
+
+      path.lineTo(size.x, rightY);
+
+      if (i == maxSegmentsToDraw - 1) {
+        final double amplitude = isSelected ? 3.5 : 2.0;
+        for (double x = size.x; x >= 0; x -= 2) {
+          final double t = x / size.x;
+          final double targetBaseY = leftY + (rightY - leftY) * t;
+          final double waveY = targetBaseY +
+              math.sin((x / size.x * 2.0 * math.pi) + (time * 5.0)) * amplitude +
+              math.cos((x / size.x * 4.0 * math.pi) - (time * 2.5)) * (amplitude * 0.4);
+          path.lineTo(x, waveY);
+        }
+      } else {
+        path.quadraticBezierTo(size.x / 2, topY + 3.5, 0, topY);
+      }
+
+      path.close();
+
+      final Color highlightColor = Color.alphaBlend(Colors.white.withValues(alpha: 0.22), color);
+      final Color shadowColor = Color.alphaBlend(Colors.black.withValues(alpha: 0.18), color);
+
+      final paint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [shadowColor, highlightColor, color, shadowColor],
+          stops: const [0.0, 0.22, 0.65, 1.0],
+        ).createShader(Rect.fromLTRB(0, topY, size.x, bottomY));
+
+      canvas.drawPath(path, paint);
+
+      if (i == maxSegmentsToDraw - 1) {
+        final wavePath2 = Path();
+        wavePath2.moveTo(0, bottomY);
+        if (i == 0) {
+          wavePath2.lineTo(size.x, bottomY);
+        } else {
+          wavePath2.quadraticBezierTo(size.x / 2, bottomY + 3.5, size.x, bottomY);
+        }
+        wavePath2.lineTo(size.x, rightY);
+        for (double x = size.x; x >= 0; x -= 2) {
+          final double t = x / size.x;
+          final double targetBaseY = leftY + (rightY - leftY) * t;
+          final double waveY = targetBaseY +
+              math.sin((x / size.x * 2.0 * math.pi) - (time * 4.0) + math.pi / 2) * 1.5;
+          wavePath2.lineTo(x, waveY);
+        }
+        wavePath2.close();
+        final paint2 = Paint()..color = Colors.white.withValues(alpha: 0.12);
+        canvas.drawPath(wavePath2, paint2);
+      }
+    }
+  }
+
+  void _renderIcons(Canvas canvas) {
+    final double segmentHeight = (size.y - 12) / tube.capacity;
+
+    int totalIcons = tube.colors.length;
+    if (isAnimatingTarget) {
+      totalIcons = tube.colors.length + animatingPourCount;
+    }
+
+    final List<Color> visibleColors = [];
+    for (int j = 0; j < totalIcons; j++) {
+      if (j < tube.colors.length) {
+        visibleColors.add(tube.colors[j]);
+      } else {
+        visibleColors.add(animatingColor ?? Colors.transparent);
+      }
+    }
+
+    for (int i = 0; i < totalIcons; i++) {
+      bool isWhite = false;
+      if (isSuperHardModeEnabled && visibleColors.isNotEmpty) {
+        final Color topColor = visibleColors.last;
+        int firstDifferentIndex = -1;
+        for (int j = visibleColors.length - 1; j >= 0; j--) {
+          if (visibleColors[j] != topColor) {
+            firstDifferentIndex = j;
+            break;
+          }
+        }
+        if (i <= firstDifferentIndex) {
+          isWhite = true;
+        }
+      }
+
+      if (isWhite) continue;
+
+      Color color;
+      double opacity = 1.0;
+
+      if (i < tube.colors.length) {
+        color = tube.colors[i];
+        if (isAnimatingSource && i >= tube.colors.length - animatingPourCount) {
+          opacity = 1.0 - animationProgress;
+        }
+      } else {
+        color = animatingColor ?? Colors.transparent;
+        opacity = animationProgress;
+      }
+
+      if (opacity <= 0.0) continue;
+
+      final double bottomY = size.y - (i * segmentHeight);
+      final double centerY = bottomY - segmentHeight / 2;
+
+      final icon = _getIconForColor(color);
+      final codePoint = icon.codePoint;
+      final fontFamily = icon.fontFamily ?? 'MaterialIcons';
+
+      final bgPaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.18 * opacity)
+        ..style = PaintingStyle.fill;
+      
+      final iconSize = size.x * 0.36;
+      canvas.drawCircle(Offset(size.x / 2, centerY), iconSize / 2 + 4.0, bgPaint);
+
+      final textPainter = TextPainter(
+        textDirection: TextDirection.ltr,
+        text: TextSpan(
+          text: String.fromCharCode(codePoint),
+          style: TextStyle(
+            fontSize: iconSize,
+            fontFamily: fontFamily,
+            color: Colors.white.withValues(alpha: 0.85 * opacity),
+          ),
+        ),
+      );
+      textPainter.layout();
+      textPainter.paint(
+        canvas,
+        Offset(
+          (size.x - textPainter.width) / 2,
+          centerY - textPainter.height / 2,
+        ),
+      );
+    }
+  }
+
+  void _renderBubbles(Canvas canvas) {
+    if (tube.colors.isEmpty) return;
+
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.35)
+      ..style = PaintingStyle.fill;
+
+    final double speedMultiplier = isSelected ? 1.8 : 1.0;
+    final random = math.Random(bubbleSeed);
+
+    double totalLiquidHeight = (tube.colors.length / tube.capacity) * (size.y - 12);
+    if (isAnimatingSource) {
+      totalLiquidHeight -= (animatingPourCount * animationProgress / tube.capacity) * (size.y - 12);
+    } else if (isAnimatingTarget) {
+      totalLiquidHeight += (animatingPourCount * animationProgress / tube.capacity) * (size.y - 12);
+    }
+
+    if (totalLiquidHeight <= 0.0) return;
+
+    for (int i = 0; i < 7; i++) {
+      final xRatio = random.nextDouble();
+      final yRatio = random.nextDouble();
+      final bubbleSize = random.nextDouble() * 2.2 + 1.2;
+      final speed = (random.nextInt(2) + 1).toDouble();
+
+      final x = xRatio * size.x + math.sin(time * 2.0 + i) * 1.5;
+      double y = size.y - ((yRatio + time * 0.22 * speed * speedMultiplier) % 1.0) * totalLiquidHeight;
+      if (y > size.y - totalLiquidHeight && y < size.y) {
+        canvas.drawCircle(Offset(x, y), bubbleSize, paint);
+      }
+    }
+  }
+
+  void _renderHighlights(Canvas canvas) {
+    final sheenPaint1 = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.centerLeft,
+        end: Alignment.centerRight,
+        colors: [
+          Colors.white.withValues(alpha: 0.3),
+          Colors.white.withValues(alpha: 0.08),
+          Colors.white.withValues(alpha: 0),
+        ],
+        stops: const [0.0, 0.5, 1.0],
+      ).createShader(Rect.fromLTWH(3.5, 4, 8, size.y - 8));
+    canvas.drawRect(Rect.fromLTWH(3.5, 4, 8, size.y - 8), sheenPaint1);
+
+    final sheenPaint2 = Paint()..color = Colors.white.withValues(alpha: 0.08);
+    canvas.drawRect(Rect.fromLTWH(size.x - 5.5, 4, 2.5, size.y - 8), sheenPaint2);
+  }
+}
+
+class ActivePourAnimation {
+  ActivePourAnimation({
+    required this.fromComponent,
+    required this.toComponent,
+    required this.color,
+    required this.pourCount,
+  });
+
+  final TubeComponent fromComponent;
+  final TubeComponent toComponent;
+  final Color color;
+  final int pourCount;
+
+  double elapsed = 0.0;
+  final double duration = 0.25;
+
+  void reset() {
+    fromComponent.isAnimatingSource = false;
+    fromComponent.animationProgress = 0.0;
+    toComponent.isAnimatingTarget = false;
+    toComponent.animationProgress = 0.0;
+    toComponent.animatingColor = null;
+  }
+
+  bool update(double dt) {
+    elapsed += dt;
+    final progress = (elapsed / duration).clamp(0.0, 1.0);
+    final easedProgress = Curves.easeInOutCubic.transform(progress);
+
+    fromComponent.isAnimatingSource = true;
+    fromComponent.animationProgress = easedProgress;
+    fromComponent.animatingPourCount = pourCount;
+
+    toComponent.isAnimatingTarget = true;
+    toComponent.animationProgress = easedProgress;
+    toComponent.animatingColor = color;
+    toComponent.animatingPourCount = pourCount;
+
+    return elapsed >= duration;
+  }
+}
+
+class GameParticle {
+  GameParticle({
+    required this.position,
+    required this.velocity,
+    required this.color,
+    required this.size,
+    required this.life,
+    required this.maxLife,
+    required this.angle,
+    required this.spinSpeed,
+    required this.isStar,
+  });
+
+  Vector2 position;
+  Vector2 velocity;
+  Color color;
+  double size;
+  double life;
+  double maxLife;
+  double angle;
+  double spinSpeed;
+  bool isStar;
+}
+
+class TapRipple {
+  TapRipple({
+    required this.position,
+    required this.radius,
+    required this.maxRadius,
+    required this.life,
+    required this.maxLife,
+    required this.color,
+  });
+
+  Vector2 position;
+  double radius;
+  double maxRadius;
+  double life;
+  double maxLife;
+  Color color;
+}
