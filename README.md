@@ -2,6 +2,8 @@
 
 A relaxing and addictive color-sorting puzzle game built with Flutter.
 
+<a href="https://f-droid.org/packages/com.sidhant.watersort"><img src="https://fdroid.gitlab.io/artwork/badge/get-it-on.png" alt="Get it on F-Droid" height="55" /></a>
+
 ## About
 
 Sort the colored water in the tubes until each tube contains only one color. Simple to learn, challenging to master.
