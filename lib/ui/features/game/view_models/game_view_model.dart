@@ -35,6 +35,7 @@ class GameViewModelState {
     this.isTimeOut = false,
     this.isProgressSaved = false,
     this.isSuperHardModeEnabled = false,
+    this.isBlurSolvedTubesEnabled = false,
   });
 
   final GameLevel? level;
@@ -53,6 +54,7 @@ class GameViewModelState {
   final bool isTimeOut;
   final bool isProgressSaved;
   final bool isSuperHardModeEnabled;
+  final bool isBlurSolvedTubesEnabled;
 
   bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut;
 
@@ -73,6 +75,7 @@ class GameViewModelState {
     bool? isTimeOut,
     bool? isProgressSaved,
     bool? isSuperHardModeEnabled,
+    bool? isBlurSolvedTubesEnabled,
   }) {
     return GameViewModelState(
       level: level ?? this.level,
@@ -94,6 +97,7 @@ class GameViewModelState {
       isTimeOut: isTimeOut ?? this.isTimeOut,
       isProgressSaved: isProgressSaved ?? this.isProgressSaved,
       isSuperHardModeEnabled: isSuperHardModeEnabled ?? this.isSuperHardModeEnabled,
+      isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled ?? this.isBlurSolvedTubesEnabled,
     );
   }
 }
@@ -153,10 +157,12 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     try {
       final level = _levelGenerator.generate(levelNumber);
       final isSuperHard = _progressRepository.isSuperHardModeEnabled();
+      final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
       debugPrint('LOAD LEVEL: isSuperHard = $isSuperHard');
       state = GameViewModelState(
         level: level,
         isSuperHardModeEnabled: isSuperHard,
+        isBlurSolvedTubesEnabled: isBlurSolved,
       );
 
       if (_shouldHaveTimer(isRandom: false, levelNumber: levelNumber, difficulty: '')) {
@@ -171,12 +177,14 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     _timer?.cancel();
     final int levelSeed = seed ?? DateTime.now().millisecondsSinceEpoch;
     final isSuperHard = _progressRepository.isSuperHardModeEnabled();
+    final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
     state = GameViewModelState(
       isLoading: true,
       isRandomMode: true,
       randomDifficulty: difficulty,
       randomSeed: levelSeed,
       isSuperHardModeEnabled: isSuperHard,
+      isBlurSolvedTubesEnabled: isBlurSolved,
     );
 
     try {

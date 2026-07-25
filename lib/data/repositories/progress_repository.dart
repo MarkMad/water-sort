@@ -72,6 +72,14 @@ class ProgressRepository {
     await _hiveService.setSuperHardModeEnabled(enabled);
   }
 
+  bool isBlurSolvedTubesEnabled() {
+    return _hiveService.isBlurSolvedTubesEnabled();
+  }
+
+  Future<void> setBlurSolvedTubesEnabled(bool enabled) async {
+    await _hiveService.setBlurSolvedTubesEnabled(enabled);
+  }
+
   Future<List<UserProfile>> getProfiles() async {
     return _hiveService.getProfiles();
   }

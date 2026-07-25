@@ -111,4 +111,12 @@ class HiveService {
   Future<void> setSuperHardModeEnabled(bool enabled) async {
     await _settingsBox.put(_superHardModeKey, enabled);
   }
+
+  bool isBlurSolvedTubesEnabled() {
+    return _settingsBox.get('blur_solved_tubes', defaultValue: false) as bool;
+  }
+
+  Future<void> setBlurSolvedTubesEnabled(bool enabled) async {
+    await _settingsBox.put('blur_solved_tubes', enabled);
+  }
 }

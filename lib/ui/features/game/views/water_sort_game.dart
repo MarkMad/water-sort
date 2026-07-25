@@ -26,7 +26,8 @@ class WaterSortGame extends FlameGame with TapCallbacks {
   void updateState(GameViewModelState newState) {
     if (_state.level != newState.level ||
         _state.selectedTubeIndex != newState.selectedTubeIndex ||
-        _state.isSuperHardModeEnabled != newState.isSuperHardModeEnabled) {
+        _state.isSuperHardModeEnabled != newState.isSuperHardModeEnabled ||
+        _state.isBlurSolvedTubesEnabled != newState.isBlurSolvedTubesEnabled) {
       _state = newState;
       _syncTubes();
     }
@@ -52,6 +53,7 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         _tubes[i].tube = newTube;
         _tubes[i].isSelected = _state.selectedTubeIndex == i;
         _tubes[i].isSuperHardModeEnabled = _state.isSuperHardModeEnabled;
+        _tubes[i].isBlurSolvedTubesEnabled = _state.isBlurSolvedTubesEnabled;
       }
     }
   }
@@ -164,7 +166,9 @@ class WaterSortGame extends FlameGame with TapCallbacks {
           index: i,
           tube: level.tubes[i],
           isSelected: _state.selectedTubeIndex == i,
-        )..isSuperHardModeEnabled = _state.isSuperHardModeEnabled;
+        )
+          ..isSuperHardModeEnabled = _state.isSuperHardModeEnabled
+          ..isBlurSolvedTubesEnabled = _state.isBlurSolvedTubesEnabled;
         _tubes.add(comp);
         add(comp);
       }
@@ -320,6 +324,7 @@ class TubeComponent extends PositionComponent {
   Tube tube;
   bool isSelected;
   bool isSuperHardModeEnabled = false;
+  bool isBlurSolvedTubesEnabled = false;
 
   Vector2 originalPosition = Vector2.zero();
   double time = 0.0;
@@ -489,7 +494,9 @@ class TubeComponent extends PositionComponent {
 
     for (int i = 0; i < maxSegmentsToDraw; i++) {
       Color color = visibleColors[i];
-      if (isSuperHardModeEnabled && visibleColors.isNotEmpty) {
+      if (isBlurSolvedTubesEnabled && tube.isSolved) {
+        color = const Color(0x28FFFFFF);
+      } else if (isSuperHardModeEnabled && visibleColors.isNotEmpty) {
         final Color topColor = visibleColors.last;
         int firstDifferentIndex = -1;
         for (int j = visibleColors.length - 1; j >= 0; j--) {
@@ -598,6 +605,8 @@ class TubeComponent extends PositionComponent {
     }
 
     for (int i = 0; i < totalIcons; i++) {
+      if (isBlurSolvedTubesEnabled && tube.isSolved) continue;
+
       bool isWhite = false;
       if (isSuperHardModeEnabled && visibleColors.isNotEmpty) {
         final Color topColor = visibleColors.last;

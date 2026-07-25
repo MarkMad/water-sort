@@ -177,6 +177,66 @@ class SettingsView extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF181818),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF222222),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'COMPLETED TUBES VISUALS',
+                          style: TextStyle(
+                            fontFamily: 'BebasNeue',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.headingWhite,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Frosts completed tubes with a blurred liquid glass effect to keep your focus on active tubes.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.subtext,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _buildRadioOption(
+                          ref: ref,
+                          title: 'Frost Completed: OFF',
+                          subtitle: 'Completed tubes retain normal colors and icons',
+                          selected: !state.isBlurSolvedTubesEnabled,
+                          onTap: () {
+                            if (state.isBlurSolvedTubesEnabled) {
+                              ref.read(homeViewModelProvider.notifier).toggleBlurSolvedTubes();
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildRadioOption(
+                          ref: ref,
+                          title: 'Frost Completed: ON',
+                          subtitle: 'Completed tubes fade into blurred liquid glass',
+                          selected: state.isBlurSolvedTubesEnabled,
+                          onTap: () {
+                            if (!state.isBlurSolvedTubesEnabled) {
+                              ref.read(homeViewModelProvider.notifier).toggleBlurSolvedTubes();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

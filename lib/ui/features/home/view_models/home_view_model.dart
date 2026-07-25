@@ -12,6 +12,7 @@ class HomeViewModelState {
     this.isLoading = false,
     this.isTimerEnabled = true,
     this.isSuperHardModeEnabled = false,
+    this.isBlurSolvedTubesEnabled = false,
   });
 
   final UserProgress? progress;
@@ -20,6 +21,7 @@ class HomeViewModelState {
   final bool isLoading;
   final bool isTimerEnabled;
   final bool isSuperHardModeEnabled;
+  final bool isBlurSolvedTubesEnabled;
 
   HomeViewModelState copyWith({
     UserProgress? progress,
@@ -28,6 +30,7 @@ class HomeViewModelState {
     bool? isLoading,
     bool? isTimerEnabled,
     bool? isSuperHardModeEnabled,
+    bool? isBlurSolvedTubesEnabled,
   }) {
     return HomeViewModelState(
       progress: progress ?? this.progress,
@@ -36,6 +39,7 @@ class HomeViewModelState {
       isLoading: isLoading ?? this.isLoading,
       isTimerEnabled: isTimerEnabled ?? this.isTimerEnabled,
       isSuperHardModeEnabled: isSuperHardModeEnabled ?? this.isSuperHardModeEnabled,
+      isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled ?? this.isBlurSolvedTubesEnabled,
     );
   }
 }
@@ -54,12 +58,14 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
       final profiles = await _progressRepository.getProfiles();
       final isTimerEnabled = _progressRepository.isTimerEnabled();
       final isSuperHardModeEnabled = _progressRepository.isSuperHardModeEnabled();
+      final isBlurSolvedTubesEnabled = _progressRepository.isBlurSolvedTubesEnabled();
       state = state.copyWith(
         progress: progress,
         activeProfile: () => activeProfile,
         profiles: profiles,
         isTimerEnabled: isTimerEnabled,
         isSuperHardModeEnabled: isSuperHardModeEnabled,
+        isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled,
         isLoading: false,
       );
     } catch (e) {
@@ -77,6 +83,12 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
     final newValue = !state.isSuperHardModeEnabled;
     await _progressRepository.setSuperHardModeEnabled(newValue);
     state = state.copyWith(isSuperHardModeEnabled: newValue);
+  }
+
+  Future<void> toggleBlurSolvedTubes() async {
+    final newValue = !state.isBlurSolvedTubesEnabled;
+    await _progressRepository.setBlurSolvedTubesEnabled(newValue);
+    state = state.copyWith(isBlurSolvedTubesEnabled: newValue);
   }
 
   Future<void> resetProgress() async {
