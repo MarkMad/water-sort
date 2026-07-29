@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flame/game.dart';
 
+import 'package:url_launcher/url_launcher.dart';
+
 import 'package:watersort/ui/core/theme/app_colors.dart';
 import 'package:watersort/ui/core/widgets/tangible_button.dart';
 import 'package:watersort/ui/features/game/view_models/game_view_model.dart';
 import 'package:watersort/ui/providers.dart';
-import 'package:watersort/ui/features/support/views/support_view.dart';
 import 'package:watersort/ui/features/game/views/water_sort_game.dart';
 
 class GameView extends ConsumerStatefulWidget {
@@ -485,13 +486,11 @@ class _GameViewState extends ConsumerState<GameView> {
                     text: 'Buy Me a Coffee ☕',
                     isSecondary: true,
                     height: 50,
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SupportView(),
-                        ),
-                      );
+                    onPressed: () async {
+                      final Uri url = Uri.parse('https://buymeacoffee.com/sidhant947');
+                      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+                        debugPrint('Could not launch $url');
+                      }
                     },
                   ),
                 ],

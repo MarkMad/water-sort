@@ -36,6 +36,7 @@ class GameViewModelState {
     this.isProgressSaved = false,
     this.isSuperHardModeEnabled = false,
     this.isBlurSolvedTubesEnabled = false,
+    this.isInstantPouringEnabled = false,
   });
 
   final GameLevel? level;
@@ -55,6 +56,7 @@ class GameViewModelState {
   final bool isProgressSaved;
   final bool isSuperHardModeEnabled;
   final bool isBlurSolvedTubesEnabled;
+  final bool isInstantPouringEnabled;
 
   bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut;
 
@@ -76,6 +78,7 @@ class GameViewModelState {
     bool? isProgressSaved,
     bool? isSuperHardModeEnabled,
     bool? isBlurSolvedTubesEnabled,
+    bool? isInstantPouringEnabled,
   }) {
     return GameViewModelState(
       level: level ?? this.level,
@@ -98,6 +101,7 @@ class GameViewModelState {
       isProgressSaved: isProgressSaved ?? this.isProgressSaved,
       isSuperHardModeEnabled: isSuperHardModeEnabled ?? this.isSuperHardModeEnabled,
       isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled ?? this.isBlurSolvedTubesEnabled,
+      isInstantPouringEnabled: isInstantPouringEnabled ?? this.isInstantPouringEnabled,
     );
   }
 }
@@ -158,11 +162,13 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       final level = _levelGenerator.generate(levelNumber);
       final isSuperHard = _progressRepository.isSuperHardModeEnabled();
       final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
+      final isInstantPouring = _progressRepository.isInstantPouringEnabled();
       debugPrint('LOAD LEVEL: isSuperHard = $isSuperHard');
       state = GameViewModelState(
         level: level,
         isSuperHardModeEnabled: isSuperHard,
         isBlurSolvedTubesEnabled: isBlurSolved,
+        isInstantPouringEnabled: isInstantPouring,
       );
 
       if (_shouldHaveTimer(isRandom: false, levelNumber: levelNumber, difficulty: '')) {
@@ -178,6 +184,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     final int levelSeed = seed ?? DateTime.now().millisecondsSinceEpoch;
     final isSuperHard = _progressRepository.isSuperHardModeEnabled();
     final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
+    final isInstantPouring = _progressRepository.isInstantPouringEnabled();
     state = GameViewModelState(
       isLoading: true,
       isRandomMode: true,
@@ -185,6 +192,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       randomSeed: levelSeed,
       isSuperHardModeEnabled: isSuperHard,
       isBlurSolvedTubesEnabled: isBlurSolved,
+      isInstantPouringEnabled: isInstantPouring,
     );
 
     try {
@@ -271,6 +279,9 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       pouringFromIndex: () => fromIndex,
       pouringToIndex: () => toIndex,
     );
+    if (state.isInstantPouringEnabled) {
+      await completePendingPour();
+    }
   }
 
   Future<void> completePendingPour() async {

@@ -13,6 +13,7 @@ class HomeViewModelState {
     this.isTimerEnabled = true,
     this.isSuperHardModeEnabled = false,
     this.isBlurSolvedTubesEnabled = false,
+    this.isInstantPouringEnabled = false,
   });
 
   final UserProgress? progress;
@@ -22,6 +23,7 @@ class HomeViewModelState {
   final bool isTimerEnabled;
   final bool isSuperHardModeEnabled;
   final bool isBlurSolvedTubesEnabled;
+  final bool isInstantPouringEnabled;
 
   HomeViewModelState copyWith({
     UserProgress? progress,
@@ -31,6 +33,7 @@ class HomeViewModelState {
     bool? isTimerEnabled,
     bool? isSuperHardModeEnabled,
     bool? isBlurSolvedTubesEnabled,
+    bool? isInstantPouringEnabled,
   }) {
     return HomeViewModelState(
       progress: progress ?? this.progress,
@@ -40,6 +43,7 @@ class HomeViewModelState {
       isTimerEnabled: isTimerEnabled ?? this.isTimerEnabled,
       isSuperHardModeEnabled: isSuperHardModeEnabled ?? this.isSuperHardModeEnabled,
       isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled ?? this.isBlurSolvedTubesEnabled,
+      isInstantPouringEnabled: isInstantPouringEnabled ?? this.isInstantPouringEnabled,
     );
   }
 }
@@ -59,6 +63,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
       final isTimerEnabled = _progressRepository.isTimerEnabled();
       final isSuperHardModeEnabled = _progressRepository.isSuperHardModeEnabled();
       final isBlurSolvedTubesEnabled = _progressRepository.isBlurSolvedTubesEnabled();
+      final isInstantPouringEnabled = _progressRepository.isInstantPouringEnabled();
       state = state.copyWith(
         progress: progress,
         activeProfile: () => activeProfile,
@@ -66,6 +71,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
         isTimerEnabled: isTimerEnabled,
         isSuperHardModeEnabled: isSuperHardModeEnabled,
         isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled,
+        isInstantPouringEnabled: isInstantPouringEnabled,
         isLoading: false,
       );
     } catch (e) {
@@ -89,6 +95,12 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
     final newValue = !state.isBlurSolvedTubesEnabled;
     await _progressRepository.setBlurSolvedTubesEnabled(newValue);
     state = state.copyWith(isBlurSolvedTubesEnabled: newValue);
+  }
+
+  Future<void> toggleInstantPouring() async {
+    final newValue = !state.isInstantPouringEnabled;
+    await _progressRepository.setInstantPouringEnabled(newValue);
+    state = state.copyWith(isInstantPouringEnabled: newValue);
   }
 
   Future<void> resetProgress() async {

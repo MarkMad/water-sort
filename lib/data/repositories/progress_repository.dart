@@ -80,6 +80,14 @@ class ProgressRepository {
     await _hiveService.setBlurSolvedTubesEnabled(enabled);
   }
 
+  bool isInstantPouringEnabled() {
+    return _hiveService.isInstantPouringEnabled();
+  }
+
+  Future<void> setInstantPouringEnabled(bool enabled) async {
+    await _hiveService.setInstantPouringEnabled(enabled);
+  }
+
   Future<List<UserProfile>> getProfiles() async {
     return _hiveService.getProfiles();
   }

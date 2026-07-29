@@ -119,4 +119,12 @@ class HiveService {
   Future<void> setBlurSolvedTubesEnabled(bool enabled) async {
     await _settingsBox.put('blur_solved_tubes', enabled);
   }
+
+  bool isInstantPouringEnabled() {
+    return _settingsBox.get('instant_pouring', defaultValue: false) as bool;
+  }
+
+  Future<void> setInstantPouringEnabled(bool enabled) async {
+    await _settingsBox.put('instant_pouring', enabled);
+  }
 }

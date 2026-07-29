@@ -237,6 +237,66 @@ class SettingsView extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF181818),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF222222),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'POURING ANIMATION',
+                          style: TextStyle(
+                            fontFamily: 'BebasNeue',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.headingWhite,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Turn off water moving animations for instant pouring.',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppColors.subtext,
+                            height: 1.3,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        _buildRadioOption(
+                          ref: ref,
+                          title: 'Animated Pouring',
+                          subtitle: 'Smooth liquid moving animation when pouring',
+                          selected: !state.isInstantPouringEnabled,
+                          onTap: () {
+                            if (state.isInstantPouringEnabled) {
+                              ref.read(homeViewModelProvider.notifier).toggleInstantPouring();
+                            }
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        _buildRadioOption(
+                          ref: ref,
+                          title: 'Instant Pouring',
+                          subtitle: 'Water transfers instantly without animation',
+                          selected: state.isInstantPouringEnabled,
+                          onTap: () {
+                            if (!state.isInstantPouringEnabled) {
+                              ref.read(homeViewModelProvider.notifier).toggleInstantPouring();
+                            }
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -563,27 +563,6 @@ class TubeComponent extends PositionComponent {
         ).createShader(Rect.fromLTRB(0, topY, size.x, bottomY));
 
       canvas.drawPath(path, paint);
-
-      if (i == maxSegmentsToDraw - 1) {
-        final wavePath2 = Path();
-        wavePath2.moveTo(0, bottomY);
-        if (i == 0) {
-          wavePath2.lineTo(size.x, bottomY);
-        } else {
-          wavePath2.quadraticBezierTo(size.x / 2, bottomY + 3.5, size.x, bottomY);
-        }
-        wavePath2.lineTo(size.x, rightY);
-        for (double x = size.x; x >= 0; x -= 2) {
-          final double t = x / size.x;
-          final double targetBaseY = leftY + (rightY - leftY) * t;
-          final double waveY = targetBaseY +
-              math.sin((x / size.x * 2.0 * math.pi) - (time * 4.0) + math.pi / 2) * 1.5;
-          wavePath2.lineTo(x, waveY);
-        }
-        wavePath2.close();
-        final paint2 = Paint()..color = Colors.white.withValues(alpha: 0.12);
-        canvas.drawPath(wavePath2, paint2);
-      }
     }
   }
 
