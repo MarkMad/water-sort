@@ -199,19 +199,25 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
     try {
       int colorCount = 3;
+      int capacity = 4;
       if (difficulty == 'Medium') {
         colorCount = 6;
+        capacity = 4;
       } else if (difficulty == 'Hard') {
         colorCount = 9;
+        capacity = 5;
       } else if (difficulty == 'Super Hard') {
         colorCount = 12;
+        capacity = 5;
       } else if (difficulty == 'Super Duper Hard') {
         colorCount = 16;
+        capacity = 6;
       }
 
       final level = _levelGenerator.generateRandom(
         colorCount: colorCount,
         seed: levelSeed,
+        capacity: capacity,
       );
 
       state = state.copyWith(

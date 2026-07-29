@@ -14,7 +14,7 @@ class LevelGenerator {
     final random = Random(levelNumber);
     final colorCount = _getColorCount(levelNumber);
     final tubeCount = _getTubeCount(levelNumber);
-    const capacity = 4;
+    final capacity = _getCapacity(levelNumber);
 
     final colors = _pickColors(colorCount, random);
 
@@ -34,10 +34,21 @@ class LevelGenerator {
     );
   }
 
-  GameLevel generateRandom({required int colorCount, required int seed}) {
+  int _getCapacity(int levelNumber) {
+    if (levelNumber > 0) {
+      if (levelNumber % 10 == 0) return 6;
+      if (levelNumber % 5 == 0) return 5;
+    }
+    return 4;
+  }
+
+  GameLevel generateRandom({
+    required int colorCount,
+    required int seed,
+    int capacity = 4,
+  }) {
     final random = Random(seed);
     final tubeCount = colorCount + _getVacantCount(colorCount);
-    const capacity = 4;
 
     final colors = _pickColors(colorCount, random);
 
@@ -98,10 +109,10 @@ class LevelGenerator {
     while (true) {
       final List<List<Color>> chunks = [];
       for (final color in colors) {
-        if (levelNumber > 0 && levelNumber <= 3) {
+        if (levelNumber > 0 && levelNumber <= 3 && capacity == 4) {
           chunks.add([color, color]);
           chunks.add([color, color]);
-        } else if (levelNumber > 0 && levelNumber <= 6) {
+        } else if (levelNumber > 0 && levelNumber <= 6 && capacity == 4) {
           if (random.nextBool()) {
             chunks.add([color, color]);
             chunks.add([color, color]);
@@ -112,10 +123,9 @@ class LevelGenerator {
             chunks.add([color]);
           }
         } else {
-          chunks.add([color]);
-          chunks.add([color]);
-          chunks.add([color]);
-          chunks.add([color]);
+          for (int c = 0; c < capacity; c++) {
+            chunks.add([color]);
+          }
         }
       }
 

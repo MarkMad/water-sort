@@ -445,6 +445,10 @@ class TubeComponent extends PositionComponent {
     _renderBubbles(canvas);
     _renderHighlights(canvas);
 
+    if (isBlurSolvedTubesEnabled && tube.isSolved) {
+      _renderIceFrostOverlay(canvas);
+    }
+
     canvas.restore();
 
     final glowBorderWidth = isSelected ? 2.8 : borderWidth;
@@ -521,7 +525,8 @@ class TubeComponent extends PositionComponent {
     for (int i = 0; i < maxSegmentsToDraw; i++) {
       Color color = visibleColors[i];
       if (isBlurSolvedTubesEnabled && tube.isSolved) {
-        color = const Color(0x28FFFFFF);
+        // Subtle frosted icy tint keeping underlying liquid colors vibrant
+        color = Color.alphaBlend(const Color(0x38E0F7FA), color);
       } else if (isSuperHardModeEnabled && visibleColors.isNotEmpty) {
         final Color topColor = visibleColors.last;
         int firstDifferentIndex = -1;
@@ -729,6 +734,134 @@ class TubeComponent extends PositionComponent {
 
     final sheenPaint2 = Paint()..color = Colors.white.withValues(alpha: 0.08);
     canvas.drawRect(Rect.fromLTWH(size.x - 5.5, 4, 2.5, size.y - 8), sheenPaint2);
+  }
+
+  void _renderIceFrostOverlay(Canvas canvas) {
+    // 1. Frosted ice glass depth gradient & specular sheen
+    final glassIcePaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          const Color(0x66E0F7FA),
+          const Color(0x2280DEEA),
+          const Color(0x88B2EBF2),
+          const Color(0x44E0F7FA),
+        ],
+        stops: const [0.0, 0.35, 0.7, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), glassIcePaint);
+
+    // 2. Realistic Procedural Ice Crack Patterns
+    final crackPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.55)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1
+      ..strokeCap = StrokeCap.round;
+
+    final crackGlowPaint = Paint()
+      ..color = const Color(0xFFE0F7FA).withValues(alpha: 0.7)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.2
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.0);
+
+    final random = math.Random(bubbleSeed + 101);
+
+    for (int i = 0; i < 4; i++) {
+      final startX = random.nextDouble() * (size.x - 12) + 6;
+      final startY = random.nextDouble() * (size.y - 20) + 10;
+      final Path crackPath = Path()..moveTo(startX, startY);
+
+      double cx = startX;
+      double cy = startY;
+      int branches = random.nextInt(3) + 3;
+
+      for (int b = 0; b < branches; b++) {
+        final angle = (random.nextDouble() * math.pi * 2);
+        final len = random.nextDouble() * 12.0 + 8.0;
+        cx += math.cos(angle) * len;
+        cy += math.sin(angle) * len;
+        cx = cx.clamp(4.0, size.x - 4.0);
+        cy = cy.clamp(4.0, size.y - 4.0);
+        crackPath.lineTo(cx, cy);
+
+        // Sub-branch crack
+        if (random.nextBool()) {
+          final subAngle = angle + (random.nextBool() ? 0.6 : -0.6);
+          final subLen = len * 0.6;
+          final subX = (cx + math.cos(subAngle) * subLen).clamp(4.0, size.x - 4.0);
+          final subY = (cy + math.sin(subAngle) * subLen).clamp(4.0, size.y - 4.0);
+          crackPath.moveTo(cx, cy);
+          crackPath.lineTo(subX, subY);
+          crackPath.moveTo(cx, cy);
+        }
+      }
+
+      canvas.drawPath(crackPath, crackGlowPaint);
+      canvas.drawPath(crackPath, crackPaint);
+    }
+
+    // 3. Corner & Edge Ice Vignette (Frosted Rim Crystallization)
+    final vignettePaint = Paint()
+      ..shader = RadialGradient(
+        center: Alignment.center,
+        radius: 0.85,
+        colors: [
+          Colors.transparent,
+          const Color(0x40E0F7FA),
+          const Color(0xBA80DEEA),
+        ],
+        stops: const [0.55, 0.82, 1.0],
+      ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.x, size.y), vignettePaint);
+
+    // 4. Fine Frost Crystal Sparkles (Star/Hexagon Points)
+    final sparklePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.85)
+      ..style = PaintingStyle.fill;
+
+    final glowSparklePaint = Paint()
+      ..color = const Color(0xFF80DEEA).withValues(alpha: 0.6)
+      ..style = PaintingStyle.fill
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3.0);
+
+    for (int i = 0; i < 7; i++) {
+      final sx = random.nextDouble() * (size.x - 10) + 5;
+      final sy = random.nextDouble() * (size.y - 14) + 7;
+      final radius = random.nextDouble() * 1.8 + 1.0;
+
+      canvas.drawCircle(Offset(sx, sy), radius + 1.5, glowSparklePaint);
+      canvas.drawCircle(Offset(sx, sy), radius, sparklePaint);
+
+      // Star cross flare
+      final Path flarePath = Path()
+        ..moveTo(sx - radius * 2.5, sy)
+        ..lineTo(sx + radius * 2.5, sy)
+        ..moveTo(sx, sy - radius * 2.5)
+        ..lineTo(sx, sy + radius * 2.5);
+      final flarePaint = Paint()
+        ..color = Colors.white.withValues(alpha: 0.7)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.8;
+      canvas.drawPath(flarePath, flarePaint);
+    }
+
+    // 5. Elegant Frosted Glass Sheen Stripe
+    final sheenPath = Path()
+      ..moveTo(2, 0)
+      ..lineTo(size.x * 0.45, 0)
+      ..lineTo(0, size.y * 0.8)
+      ..close();
+    final sheenPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Colors.white.withValues(alpha: 0.45),
+          Colors.white.withValues(alpha: 0.05),
+        ],
+      ).createShader(Rect.fromLTWH(0, 0, size.x, size.y));
+    canvas.drawPath(sheenPath, sheenPaint);
   }
 }
 

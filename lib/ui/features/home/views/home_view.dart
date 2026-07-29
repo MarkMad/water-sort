@@ -355,7 +355,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
               ),
               const SizedBox(height: 24),
               TangibleButton(
-                text: 'Easy (3 Colors)',
+                text: 'Easy',
                 isSecondary: true,
                 onPressed: () {
                   Navigator.pop(context);
@@ -373,7 +373,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
               ),
               const SizedBox(height: 12),
               TangibleButton(
-                text: 'Medium (6 Colors)',
+                text: 'Medium',
                 isSecondary: true,
                 onPressed: () {
                   Navigator.pop(context);
@@ -391,7 +391,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
               ),
               const SizedBox(height: 12),
               TangibleButton(
-                text: 'Hard (9 Colors)',
+                text: 'Hard',
                 isSecondary: true,
                 onPressed: () {
                   Navigator.pop(context);
@@ -409,7 +409,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
               ),
               const SizedBox(height: 12),
               TangibleButton(
-                text: 'Super Hard (12 Colors)',
+                text: 'Expert',
                 isSecondary: true,
                 onPressed: () {
                   Navigator.pop(context);
@@ -427,7 +427,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
               ),
               const SizedBox(height: 12),
               TangibleButton(
-                text: 'Super Duper Hard (16 Colors)',
+                text: 'Extreme',
                 isSecondary: true,
                 onPressed: () {
                   Navigator.pop(context);

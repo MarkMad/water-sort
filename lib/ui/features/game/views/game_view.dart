@@ -115,12 +115,22 @@ class _GameViewState extends ConsumerState<GameView> {
                     ),
                   ),
                   Text(
-                    state.isRandomMode ? 'RANDOM PUZZLE' : 'LEVEL ${widget.levelNumber}',
-                    style: const TextStyle(
+                    state.isRandomMode
+                        ? 'RANDOM PUZZLE'
+                        : widget.levelNumber % 10 == 0
+                            ? 'LEVEL ${widget.levelNumber} (BOSS)'
+                            : widget.levelNumber % 5 == 0
+                                ? 'LEVEL ${widget.levelNumber} (SPECIAL)'
+                                : 'LEVEL ${widget.levelNumber}',
+                    style: TextStyle(
                       fontFamily: 'BebasNeue',
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
-                      color: AppColors.headingWhite,
+                      color: !state.isRandomMode && widget.levelNumber % 10 == 0
+                          ? Colors.redAccent
+                          : !state.isRandomMode && widget.levelNumber % 5 == 0
+                              ? Colors.amber
+                              : AppColors.headingWhite,
                       letterSpacing: 1.0,
                     ),
                   ),
@@ -594,30 +604,26 @@ class _GameViewState extends ConsumerState<GameView> {
                 ),
               ),
               const SizedBox(height: 28),
-              Row(
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: TangibleButton(
-                      text: 'Home',
-                      isSecondary: true,
-                      height: 50,
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      },
-                    ),
+                  TangibleButton(
+                    text: 'Try Again',
+                    height: 50,
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ref.read(gameViewModelProvider.notifier).resetLevel();
+                    },
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: TangibleButton(
-                      text: 'Try Again',
-                      height: 50,
-                      onPressed: () {
-                        Navigator.pop(context);
-                        ref.read(gameViewModelProvider.notifier).resetLevel();
-                      },
-                    ),
+                  const SizedBox(height: 12),
+                  TangibleButton(
+                    text: 'Home',
+                    isSecondary: true,
+                    height: 50,
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.pop(context);
+                    },
                   ),
                 ],
               ),
