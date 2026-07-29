@@ -60,6 +60,8 @@ class GameViewModelState {
 
   bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut;
 
+  bool get isNoMovesLeft => level != null && !isComplete && !isTimeOut && !level!.hasPossibleMoves;
+
   GameViewModelState copyWith({
     GameLevel? level,
     bool? isLoading,

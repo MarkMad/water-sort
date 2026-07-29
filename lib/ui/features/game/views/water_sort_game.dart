@@ -197,22 +197,48 @@ class WaterSortGame extends FlameGame with TapCallbacks {
   @override
   void onTapDown(TapDownEvent event) {
     if (_activePour != null) return;
+    
+    TubeComponent? tappedTube;
+
+    // 1. Direct hit check
     for (final tube in _tubes) {
       if (tube.containsPoint(event.localPosition)) {
-        final center = tube.position + tube.size / 2;
-        _ripples.add(
-          TapRipple(
-            position: center,
-            radius: 5.0,
-            maxRadius: tube.size.x * 1.3,
-            life: 0.0,
-            maxLife: 0.3,
-            color: const Color(0xFF00FFCC),
-          ),
-        );
-        onTubeTap(tube.index);
+        tappedTube = tube;
         break;
       }
+    }
+
+    // 2. Proximity check with expanded margin if no direct hit
+    if (tappedTube == null) {
+      double minDistance = double.infinity;
+      const double maxTouchMargin = 24.0;
+
+      for (final tube in _tubes) {
+        final Rect expandedBounds = tube.toRect().inflate(maxTouchMargin);
+        if (expandedBounds.contains(event.localPosition.toOffset())) {
+          final Vector2 center = tube.position + tube.size / 2;
+          final double dist = center.distanceTo(event.localPosition);
+          if (dist < minDistance) {
+            minDistance = dist;
+            tappedTube = tube;
+          }
+        }
+      }
+    }
+
+    if (tappedTube != null) {
+      final center = tappedTube.position + tappedTube.size / 2;
+      _ripples.add(
+        TapRipple(
+          position: center,
+          radius: 5.0,
+          maxRadius: tappedTube.size.x * 1.3,
+          life: 0.0,
+          maxLife: 0.3,
+          color: const Color(0xFF00FFCC),
+        ),
+      );
+      onTubeTap(tappedTube.index);
     }
   }
 

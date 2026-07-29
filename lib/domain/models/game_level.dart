@@ -23,6 +23,23 @@ class GameLevel {
 
   bool get isComplete => tubes.every((t) => t.isSolved || t.isEmpty);
 
+  bool get hasPossibleMoves {
+    if (isComplete) return false;
+    for (int i = 0; i < tubes.length; i++) {
+      final from = tubes[i];
+      if (from.isEmpty) continue;
+      final colorToMove = from.topColor!;
+      for (int j = 0; j < tubes.length; j++) {
+        if (i == j) continue;
+        final to = tubes[j];
+        if (!to.isFull && to.canReceive(colorToMove)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
   GameLevel copyWith({
     int? levelNumber,
     List<Tube>? tubes,

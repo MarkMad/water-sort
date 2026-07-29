@@ -67,6 +67,9 @@ class _GameViewState extends ConsumerState<GameView> {
       if (next.isTimeOut && !(prev?.isTimeOut ?? false)) {
         _showTimeOutDialog();
       }
+      if (next.isNoMovesLeft && !(prev?.isNoMovesLeft ?? false)) {
+        _showNoMovesLeftDialog();
+      }
     });
 
     final isComplete = state.isComplete;
@@ -111,59 +114,37 @@ class _GameViewState extends ConsumerState<GameView> {
                       ),
                     ),
                   ),
-                  if (!state.isRandomMode)
-                    Text(
-                      'LEVEL ${widget.levelNumber}',
-                      style: const TextStyle(
-                        fontFamily: 'BebasNeue',
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.headingWhite,
-                        letterSpacing: 1.0,
-                      ),
+                  Text(
+                    state.isRandomMode ? 'RANDOM PUZZLE' : 'LEVEL ${widget.levelNumber}',
+                    style: const TextStyle(
+                      fontFamily: 'BebasNeue',
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.headingWhite,
+                      letterSpacing: 1.0,
                     ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1C1C22),
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(
-                        color: const Color(0xFF222222),
-                        width: 1.0,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        GestureDetector(
-                          onTap: state.canUndo
-                              ? () => ref.read(gameViewModelProvider.notifier).undoMove()
-                              : null,
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            child: Icon(
-                              Icons.undo_rounded,
-                              size: 20,
-                              color: Colors.white.withValues(alpha: state.canUndo ? 1.0 : 0.3),
-                            ),
+                  ),
+                  GestureDetector(
+                    onTap: () => ref.read(gameViewModelProvider.notifier).resetLevel(),
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.all(4.0),
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1C1C22),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF222222),
+                            width: 1.0,
                           ),
                         ),
-                        Container(
-                          width: 1,
-                          height: 20,
-                          color: const Color(0xFF222222),
+                        child: const Icon(
+                          Icons.refresh_rounded,
+                          size: 20,
+                          color: Colors.white,
                         ),
-                        GestureDetector(
-                          onTap: () => ref.read(gameViewModelProvider.notifier).resetLevel(),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                            child: Icon(
-                              Icons.refresh_rounded,
-                              size: 20,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
@@ -207,7 +188,7 @@ class _GameViewState extends ConsumerState<GameView> {
       children: [
         Container(
           margin: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
             color: const Color(0xFF181818),
             borderRadius: BorderRadius.circular(12),
@@ -229,6 +210,15 @@ class _GameViewState extends ConsumerState<GameView> {
                   color: state.timeLeft! <= 15 ? Colors.red : AppColors.accent,
                 ),
               ],
+              _verticalDivider(),
+              _actionStat(
+                label: 'UNDO',
+                icon: Icons.undo_rounded,
+                enabled: state.canUndo,
+                onTap: state.canUndo
+                    ? () => ref.read(gameViewModelProvider.notifier).undoMove()
+                    : null,
+              ),
             ],
           ),
         ),
@@ -285,6 +275,43 @@ class _GameViewState extends ConsumerState<GameView> {
       width: 1.0,
       height: 30,
       color: AppColors.gridLines,
+    );
+  }
+
+  Widget _actionStat({
+    required String label,
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback? onTap,
+  }) {
+    final color = enabled ? AppColors.accent : AppColors.subtext.withValues(alpha: 0.3);
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 22,
+              color: color,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'BebasNeue',
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: color,
+                letterSpacing: 0.8,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -591,6 +618,98 @@ class _GameViewState extends ConsumerState<GameView> {
                         ref.read(gameViewModelProvider.notifier).resetLevel();
                       },
                     ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showNoMovesLeftDialog() {
+    final state = ref.read(gameViewModelProvider);
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => Dialog(
+        backgroundColor: const Color(0xFF181818),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: const BorderSide(
+            color: Color(0xFF222222),
+            width: 1.0,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.3),
+                    width: 1.0,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.block_rounded,
+                  color: Colors.amber,
+                  size: 56,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'NO MORE MOVES!',
+                style: TextStyle(
+                  fontFamily: 'BebasNeue',
+                  fontSize: 28,
+                  fontWeight: FontWeight.w900,
+                  color: AppColors.headingWhite,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'There are no valid moves remaining for this configuration.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontFamily: 'BebasNeue',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.subtext,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 28),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (state.canUndo) ...[
+                    TangibleButton(
+                      text: 'Undo Last Move',
+                      height: 50,
+                      onPressed: () {
+                        Navigator.pop(context);
+                        ref.read(gameViewModelProvider.notifier).undoMove();
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  TangibleButton(
+                    text: 'Restart Level',
+                    isSecondary: state.canUndo,
+                    height: 50,
+                    onPressed: () {
+                      Navigator.pop(context);
+                      ref.read(gameViewModelProvider.notifier).resetLevel();
+                    },
                   ),
                 ],
               ),
