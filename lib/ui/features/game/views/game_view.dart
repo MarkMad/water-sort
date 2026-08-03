@@ -197,37 +197,172 @@ class _GameViewState extends ConsumerState<GameView> {
     return Column(
       children: [
         Container(
-          margin: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          margin: const EdgeInsets.fromLTRB(20, 6, 20, 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFF181818),
-            borderRadius: BorderRadius.circular(12),
+            color: const Color(0xFF131317),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: const Color(0xFF222222),
+              color: const Color(0xFF23232D),
               width: 1.0,
             ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.3),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _stat('MOVES', '${state.moveCount}', Icons.trending_up_rounded),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1C24),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.swap_vert_rounded,
+                        size: 16,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          '${state.moveCount}',
+                          style: const TextStyle(
+                            fontFamily: 'BebasNeue',
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: AppColors.headingWhite,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        const Text(
+                          'MOVES',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.subtext,
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
               if (state.timeLeft != null) ...[
-                _verticalDivider(),
-                _stat(
-                  'TIME LEFT',
-                  _formatTime(state.timeLeft!),
-                  Icons.timer_rounded,
-                  color: state.timeLeft! <= 15 ? Colors.red : AppColors.accent,
+                Container(
+                  width: 1.0,
+                  height: 24,
+                  color: const Color(0xFF2A2A35),
+                ),
+                Expanded(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.timer_rounded,
+                        size: 16,
+                        color: state.timeLeft! <= 15 ? Colors.redAccent : AppColors.accent,
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            _formatTime(state.timeLeft!),
+                            style: TextStyle(
+                              fontFamily: 'BebasNeue',
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: state.timeLeft! <= 15 ? Colors.redAccent : AppColors.headingWhite,
+                            ),
+                          ),
+                          const SizedBox(height: 1),
+                          Text(
+                            'TIME LEFT',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              color: state.timeLeft! <= 15 ? Colors.redAccent.withOpacity(0.7) : AppColors.subtext,
+                              letterSpacing: 0.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
-              _verticalDivider(),
-              _actionStat(
-                label: 'UNDO',
-                icon: Icons.undo_rounded,
-                enabled: state.canUndo,
-                onTap: state.canUndo
-                    ? () => ref.read(gameViewModelProvider.notifier).undoMove()
-                    : null,
+              Container(
+                width: 1.0,
+                height: 24,
+                color: const Color(0xFF2A2A35),
+              ),
+              Expanded(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    GestureDetector(
+                      onTap: state.canUndo
+                          ? () => ref.read(gameViewModelProvider.notifier).undoMove()
+                          : null,
+                      behavior: HitTestBehavior.opaque,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: state.canUndo
+                              ? AppColors.accent.withOpacity(0.1)
+                              : const Color(0xFF17171C),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: state.canUndo
+                                ? AppColors.accent.withOpacity(0.3)
+                                : const Color(0xFF22222A),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.undo_rounded,
+                              size: 14,
+                              color: state.canUndo
+                                  ? AppColors.accent
+                                  : AppColors.subtext.withOpacity(0.3),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'UNDO',
+                              style: TextStyle(
+                                fontFamily: 'BebasNeue',
+                                fontSize: 13,
+                                fontWeight: FontWeight.w900,
+                                color: state.canUndo
+                                    ? AppColors.accent
+                                    : AppColors.subtext.withOpacity(0.3),
+                                letterSpacing: 0.6,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -241,87 +376,6 @@ class _GameViewState extends ConsumerState<GameView> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _stat(String label, String value, IconData icon, {Color? color}) {
-    final displayColor = color ?? AppColors.accent;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          size: 18,
-          color: displayColor,
-        ),
-        const SizedBox(height: 6),
-        Text(
-          value,
-          style: TextStyle(
-            fontFamily: 'BebasNeue',
-            fontSize: 24,
-            fontWeight: FontWeight.w900,
-            color: color ?? AppColors.headingWhite,
-            letterSpacing: 0.5,
-          ),
-        ),
-        const SizedBox(height: 2),
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: 'BebasNeue',
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: AppColors.subtext,
-            letterSpacing: 0.8,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _verticalDivider() {
-    return Container(
-      width: 1.0,
-      height: 30,
-      color: AppColors.gridLines,
-    );
-  }
-
-  Widget _actionStat({
-    required String label,
-    required IconData icon,
-    required bool enabled,
-    required VoidCallback? onTap,
-  }) {
-    final color = enabled ? AppColors.accent : AppColors.subtext.withValues(alpha: 0.3);
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 4.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 22,
-              color: color,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: 'BebasNeue',
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: color,
-                letterSpacing: 0.8,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
