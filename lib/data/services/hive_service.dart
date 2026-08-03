@@ -96,57 +96,74 @@ class HiveService {
     await _progressBox.delete('progress_$profileId');
   }
 
+  String _getActiveProfileIdSync() {
+    return (_settingsBox.get(_activeProfileKey) as String?) ?? 'default_profile';
+  }
+
   bool isTimerEnabled() {
-    return _settingsBox.get(_timerEnabledKey, defaultValue: true) as bool;
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_timer_enabled', defaultValue: true) as bool;
   }
 
   Future<void> setTimerEnabled(bool enabled) async {
-    await _settingsBox.put(_timerEnabledKey, enabled);
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_timer_enabled', enabled);
   }
 
   bool isSuperHardModeEnabled() {
-    return _settingsBox.get(_superHardModeKey, defaultValue: false) as bool;
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_super_hard_mode', defaultValue: false) as bool;
   }
 
   Future<void> setSuperHardModeEnabled(bool enabled) async {
-    await _settingsBox.put(_superHardModeKey, enabled);
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_super_hard_mode', enabled);
   }
 
   bool isBlurSolvedTubesEnabled() {
-    return _settingsBox.get('blur_solved_tubes', defaultValue: false) as bool;
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_blur_solved_tubes', defaultValue: false) as bool;
   }
 
   Future<void> setBlurSolvedTubesEnabled(bool enabled) async {
-    await _settingsBox.put('blur_solved_tubes', enabled);
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_blur_solved_tubes', enabled);
   }
 
   bool isInstantPouringEnabled() {
-    return _settingsBox.get('instant_pouring', defaultValue: false) as bool;
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_instant_pouring', defaultValue: false) as bool;
   }
 
   Future<void> setInstantPouringEnabled(bool enabled) async {
-    await _settingsBox.put('instant_pouring', enabled);
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_instant_pouring', enabled);
   }
 
   Map<dynamic, dynamic>? getSavedLevelState() {
-    return _settingsBox.get('saved_level_state') as Map<dynamic, dynamic>?;
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_saved_level_state') as Map<dynamic, dynamic>?;
   }
 
   Future<void> saveActiveLevelState(Map<dynamic, dynamic> stateMap) async {
-    await _settingsBox.put('saved_level_state', stateMap);
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_saved_level_state', stateMap);
   }
 
   Future<void> clearActiveLevelState() async {
-    await _settingsBox.delete('saved_level_state');
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.delete('${profileId}_saved_level_state');
   }
 
   Map<dynamic, dynamic> getAllLevelStars() {
-    return _settingsBox.get('level_stars', defaultValue: <dynamic, dynamic>{}) as Map<dynamic, dynamic>;
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_level_stars', defaultValue: <dynamic, dynamic>{}) as Map<dynamic, dynamic>;
   }
 
   Future<void> saveLevelStars(int levelNumber, int stars) async {
+    final profileId = _getActiveProfileIdSync();
     final starsMap = Map<dynamic, dynamic>.from(getAllLevelStars());
     starsMap[levelNumber] = stars;
-    await _settingsBox.put('level_stars', starsMap);
+    await _settingsBox.put('${profileId}_level_stars', starsMap);
   }
 }
