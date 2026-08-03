@@ -132,4 +132,16 @@ class ProgressRepository {
   Future<void> updateProfile(UserProfile profile) async {
     await _hiveService.saveProfile(profile);
   }
+
+  Map<dynamic, dynamic>? getSavedLevelState() {
+    return _hiveService.getSavedLevelState();
+  }
+
+  Future<void> saveActiveLevelState(Map<dynamic, dynamic> stateMap) async {
+    await _hiveService.saveActiveLevelState(stateMap);
+  }
+
+  Future<void> clearActiveLevelState() async {
+    await _hiveService.clearActiveLevelState();
+  }
 }

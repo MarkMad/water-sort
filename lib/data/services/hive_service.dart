@@ -127,4 +127,16 @@ class HiveService {
   Future<void> setInstantPouringEnabled(bool enabled) async {
     await _settingsBox.put('instant_pouring', enabled);
   }
+
+  Map<dynamic, dynamic>? getSavedLevelState() {
+    return _settingsBox.get('saved_level_state') as Map<dynamic, dynamic>?;
+  }
+
+  Future<void> saveActiveLevelState(Map<dynamic, dynamic> stateMap) async {
+    await _settingsBox.put('saved_level_state', stateMap);
+  }
+
+  Future<void> clearActiveLevelState() async {
+    await _settingsBox.delete('saved_level_state');
+  }
 }

@@ -74,17 +74,7 @@ class _GameViewState extends ConsumerState<GameView> {
 
     final isComplete = state.isComplete;
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (isComplete) {
-          Navigator.pop(context);
-        } else {
-          _showExitConfirmationDialog();
-        }
-      },
-      child: Scaffold(
+    return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         child: Column(
@@ -96,7 +86,7 @@ class _GameViewState extends ConsumerState<GameView> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   GestureDetector(
-                    onTap: () => _showExitConfirmationDialog(),
+                    onTap: () => Navigator.pop(context),
                     child: Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -186,7 +176,6 @@ class _GameViewState extends ConsumerState<GameView> {
           ],
         ),
       ),
-    ),
     );
   }
 
@@ -376,94 +365,6 @@ class _GameViewState extends ConsumerState<GameView> {
           ),
         ),
       ],
-    );
-  }
-
-  void _showExitConfirmationDialog() {
-    showDialog(
-      context: context,
-      builder: (_) => Dialog(
-        backgroundColor: const Color(0xFF181818),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(
-            color: Color(0xFF222222),
-            width: 1.0,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.red.withValues(alpha: 0.3),
-                    width: 1.0,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.exit_to_app_rounded,
-                  color: Colors.red,
-                  size: 40,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'QUIT LEVEL?',
-                style: TextStyle(
-                  fontFamily: 'BebasNeue',
-                  fontSize: 28,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.headingWhite,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Your progress in this level will be lost.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'BebasNeue',
-                  fontSize: 16,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.subtext,
-                  height: 1.2,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: TangibleButton(
-                      text: 'Cancel',
-                      isSecondary: true,
-                      height: 50,
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: TangibleButton(
-                      text: 'Quit',
-                      height: 50,
-                      onPressed: () {
-                        Navigator.pop(context);
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 

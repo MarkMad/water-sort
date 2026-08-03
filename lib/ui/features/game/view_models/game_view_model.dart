@@ -161,6 +161,58 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     state = const GameViewModelState(isLoading: true);
 
     try {
+      final savedMap = _progressRepository.getSavedLevelState();
+      if (savedMap != null &&
+          savedMap['levelNumber'] == levelNumber &&
+          savedMap['isRandomMode'] == false) {
+        final savedTubes = (savedMap['tubes'] as List).map((t) {
+          final tMap = Map<dynamic, dynamic>.from(t as Map);
+          return Tube(
+            colors: (tMap['colors'] as List).map((c) => Color(c as int)).toList(),
+            capacity: tMap['capacity'] as int,
+          );
+        }).toList();
+
+        final savedHistory = (savedMap['moveHistory'] as List).map((h) {
+          final hMap = Map<dynamic, dynamic>.from(h as Map);
+          final tubes = (hMap['tubes'] as List).map((t) {
+            final tMap = Map<dynamic, dynamic>.from(t as Map);
+            return Tube(
+              colors: (tMap['colors'] as List).map((c) => Color(c as int)).toList(),
+              capacity: tMap['capacity'] as int,
+            );
+          }).toList();
+          return MoveSnapshot(
+            tubes: tubes,
+            moveCount: hMap['moveCount'] as int,
+          );
+        }).toList();
+
+        final level = GameLevel(
+          levelNumber: levelNumber,
+          tubes: savedTubes,
+          optimalMoves: savedMap['optimalMoves'] as int,
+        );
+
+        final isSuperHard = _progressRepository.isSuperHardModeEnabled();
+        final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
+        final isInstantPouring = _progressRepository.isInstantPouringEnabled();
+
+        state = GameViewModelState(
+          level: level,
+          moveCount: savedMap['moveCount'] as int,
+          moveHistory: savedHistory,
+          isSuperHardModeEnabled: isSuperHard,
+          isBlurSolvedTubesEnabled: isBlurSolved,
+          isInstantPouringEnabled: isInstantPouring,
+        );
+
+        if (savedMap['timeLeft'] != null) {
+          _startTimer(savedMap['timeLeft'] as int);
+        }
+        return;
+      }
+
       final level = _levelGenerator.generate(levelNumber);
       final isSuperHard = _progressRepository.isSuperHardModeEnabled();
       final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
@@ -172,6 +224,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         isBlurSolvedTubesEnabled: isBlurSolved,
         isInstantPouringEnabled: isInstantPouring,
       );
+
+      _progressRepository.clearActiveLevelState();
 
       if (_shouldHaveTimer(isRandom: false, levelNumber: levelNumber, difficulty: '')) {
         _startTimer(_calculateTimerDuration(level.colorCount));
@@ -198,6 +252,58 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     );
 
     try {
+      final savedMap = _progressRepository.getSavedLevelState();
+      if (savedMap != null &&
+          savedMap['isRandomMode'] == true &&
+          savedMap['randomDifficulty'] == difficulty &&
+          (seed == null || savedMap['randomSeed'] == seed)) {
+        final savedTubes = (savedMap['tubes'] as List).map((t) {
+          final tMap = Map<dynamic, dynamic>.from(t as Map);
+          return Tube(
+            colors: (tMap['colors'] as List).map((c) => Color(c as int)).toList(),
+            capacity: tMap['capacity'] as int,
+          );
+        }).toList();
+
+        final savedHistory = (savedMap['moveHistory'] as List).map((h) {
+          final hMap = Map<dynamic, dynamic>.from(h as Map);
+          final tubes = (hMap['tubes'] as List).map((t) {
+            final tMap = Map<dynamic, dynamic>.from(t as Map);
+            return Tube(
+              colors: (tMap['colors'] as List).map((c) => Color(c as int)).toList(),
+              capacity: tMap['capacity'] as int,
+            );
+          }).toList();
+          return MoveSnapshot(
+            tubes: tubes,
+            moveCount: hMap['moveCount'] as int,
+          );
+        }).toList();
+
+        final level = GameLevel(
+          levelNumber: savedMap['levelNumber'] as int? ?? -1,
+          tubes: savedTubes,
+          optimalMoves: savedMap['optimalMoves'] as int? ?? 10,
+        );
+
+        state = GameViewModelState(
+          level: level,
+          isRandomMode: true,
+          randomDifficulty: difficulty,
+          randomSeed: savedMap['randomSeed'] as int?,
+          moveCount: savedMap['moveCount'] as int,
+          moveHistory: savedHistory,
+          isSuperHardModeEnabled: isSuperHard,
+          isBlurSolvedTubesEnabled: isBlurSolved,
+          isInstantPouringEnabled: isInstantPouring,
+        );
+
+        if (savedMap['timeLeft'] != null) {
+          _startTimer(savedMap['timeLeft'] as int);
+        }
+        return;
+      }
+
       int colorCount = 3;
       int capacity = 4;
       if (difficulty == 'Medium') {
@@ -224,6 +330,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         level: level,
         isLoading: false,
       );
+
+      _progressRepository.clearActiveLevelState();
 
       if (_shouldHaveTimer(isRandom: true, levelNumber: -1, difficulty: difficulty)) {
         _startTimer(_calculateTimerDuration(level.colorCount));
@@ -354,6 +462,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       moveHistory: [...state.moveHistory, snapshot],
     );
 
+    _saveCurrentState();
+
     if (isComplete) {
       await completeLevel();
     }
@@ -362,6 +472,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   Future<void> completeLevel() async {
     if (state.level == null || !state.isComplete || state.isProgressSaved) return;
     state = state.copyWith(isProgressSaved: true);
+    _progressRepository.clearActiveLevelState();
     if (state.isRandomMode) {
       await _progressRepository.addRandomLevelMoves(state.moveCount);
     } else {
@@ -394,6 +505,37 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       isComplete: false,
       moveHistory: newHistory,
     );
+
+    _saveCurrentState();
+  }
+
+  void _saveCurrentState() {
+    if (state.level == null || state.isComplete) {
+      _progressRepository.clearActiveLevelState();
+      return;
+    }
+    final level = state.level!;
+    final stateMap = <String, dynamic>{
+      'levelNumber': level.levelNumber,
+      'isRandomMode': state.isRandomMode,
+      'randomDifficulty': state.randomDifficulty,
+      'randomSeed': state.randomSeed,
+      'moveCount': state.moveCount,
+      'timeLeft': state.timeLeft,
+      'optimalMoves': level.optimalMoves,
+      'tubes': level.tubes.map((t) => {
+        'colors': t.colors.map((c) => c.value).toList(),
+        'capacity': t.capacity,
+      }).toList(),
+      'moveHistory': state.moveHistory.map((s) => {
+        'moveCount': s.moveCount,
+        'tubes': s.tubes.map((t) => {
+          'colors': t.colors.map((c) => c.value).toList(),
+          'capacity': t.capacity,
+        }).toList(),
+      }).toList(),
+    };
+    _progressRepository.saveActiveLevelState(stateMap);
   }
 
   @override
