@@ -144,4 +144,12 @@ class ProgressRepository {
   Future<void> clearActiveLevelState() async {
     await _hiveService.clearActiveLevelState();
   }
+
+  Map<dynamic, dynamic> getAllLevelStars() {
+    return _hiveService.getAllLevelStars();
+  }
+
+  Future<void> saveLevelStars(int levelNumber, int stars) async {
+    await _hiveService.saveLevelStars(levelNumber, stars);
+  }
 }

@@ -125,6 +125,8 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
 
     if (isCompleted) {
       borderColor = AppColors.accent.withOpacity(0.4);
+      final state = ref.read(homeViewModelProvider);
+      final stars = (state.levelStars[levelNumber] ?? state.levelStars[levelNumber.toString()] ?? 0) as int;
       content = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -132,15 +134,21 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
             '$levelNumber',
             style: TextStyle(
               fontFamily: 'BebasNeue',
-              fontSize: 22,
+              fontSize: 20,
               color: Colors.white.withOpacity(0.9),
             ),
           ),
-          const SizedBox(height: 2),
-          Icon(
-            Icons.check_circle_rounded,
-            size: 11,
-            color: AppColors.accent.withOpacity(0.8),
+          const SizedBox(height: 4),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(3, (starIndex) {
+              final isStarred = starIndex < (stars > 0 ? stars : 3);
+              return Icon(
+                Icons.star_rounded,
+                size: 10,
+                color: isStarred ? AppColors.accent : const Color(0xFF333333),
+              );
+            }),
           ),
         ],
       );

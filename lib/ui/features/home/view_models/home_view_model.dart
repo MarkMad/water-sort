@@ -14,6 +14,7 @@ class HomeViewModelState {
     this.isSuperHardModeEnabled = false,
     this.isBlurSolvedTubesEnabled = false,
     this.isInstantPouringEnabled = false,
+    this.levelStars = const {},
   });
 
   final UserProgress? progress;
@@ -24,6 +25,7 @@ class HomeViewModelState {
   final bool isSuperHardModeEnabled;
   final bool isBlurSolvedTubesEnabled;
   final bool isInstantPouringEnabled;
+  final Map<dynamic, dynamic> levelStars;
 
   HomeViewModelState copyWith({
     UserProgress? progress,
@@ -34,6 +36,7 @@ class HomeViewModelState {
     bool? isSuperHardModeEnabled,
     bool? isBlurSolvedTubesEnabled,
     bool? isInstantPouringEnabled,
+    Map<dynamic, dynamic>? levelStars,
   }) {
     return HomeViewModelState(
       progress: progress ?? this.progress,
@@ -44,6 +47,7 @@ class HomeViewModelState {
       isSuperHardModeEnabled: isSuperHardModeEnabled ?? this.isSuperHardModeEnabled,
       isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled ?? this.isBlurSolvedTubesEnabled,
       isInstantPouringEnabled: isInstantPouringEnabled ?? this.isInstantPouringEnabled,
+      levelStars: levelStars ?? this.levelStars,
     );
   }
 }
@@ -64,6 +68,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
       final isSuperHardModeEnabled = _progressRepository.isSuperHardModeEnabled();
       final isBlurSolvedTubesEnabled = _progressRepository.isBlurSolvedTubesEnabled();
       final isInstantPouringEnabled = _progressRepository.isInstantPouringEnabled();
+      final levelStars = _progressRepository.getAllLevelStars();
       state = state.copyWith(
         progress: progress,
         activeProfile: () => activeProfile,
@@ -72,6 +77,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
         isSuperHardModeEnabled: isSuperHardModeEnabled,
         isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled,
         isInstantPouringEnabled: isInstantPouringEnabled,
+        levelStars: levelStars,
         isLoading: false,
       );
     } catch (e) {

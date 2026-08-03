@@ -139,4 +139,14 @@ class HiveService {
   Future<void> clearActiveLevelState() async {
     await _settingsBox.delete('saved_level_state');
   }
+
+  Map<dynamic, dynamic> getAllLevelStars() {
+    return _settingsBox.get('level_stars', defaultValue: <dynamic, dynamic>{}) as Map<dynamic, dynamic>;
+  }
+
+  Future<void> saveLevelStars(int levelNumber, int stars) async {
+    final starsMap = Map<dynamic, dynamic>.from(getAllLevelStars());
+    starsMap[levelNumber] = stars;
+    await _settingsBox.put('level_stars', starsMap);
+  }
 }

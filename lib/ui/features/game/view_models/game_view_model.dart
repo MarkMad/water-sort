@@ -473,6 +473,17 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     if (state.level == null || !state.isComplete || state.isProgressSaved) return;
     state = state.copyWith(isProgressSaved: true);
     _progressRepository.clearActiveLevelState();
+    final moves = state.moveCount;
+    final optimal = state.level?.optimalMoves ?? 0;
+    final int filledStars;
+    if (moves < optimal) {
+      filledStars = 3;
+    } else if (moves == optimal) {
+      filledStars = 2;
+    } else {
+      filledStars = 1;
+    }
+    await _progressRepository.saveLevelStars(state.level!.levelNumber, filledStars);
     if (state.isRandomMode) {
       await _progressRepository.addRandomLevelMoves(state.moveCount);
     } else {
@@ -481,6 +492,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   }
 
   void resetLevel() {
+    _progressRepository.clearActiveLevelState();
     if (state.level != null) {
       if (state.isRandomMode) {
         loadRandomLevel(state.randomDifficulty ?? 'Easy', seed: state.randomSeed);
@@ -500,7 +512,6 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
     state = state.copyWith(
       level: state.level!.copyWith(tubes: snapshot.tubes),
-      moveCount: snapshot.moveCount,
       selectedTubeIndex: () => null,
       isComplete: false,
       moveHistory: newHistory,
