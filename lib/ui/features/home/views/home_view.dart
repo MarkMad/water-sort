@@ -317,149 +317,127 @@ class _HomeViewState extends ConsumerState<HomeView> {
   void _showDifficultyDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        backgroundColor: const Color(0xFF181818),
-        elevation: 0,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: const BorderSide(
-            color: Color(0xFF222222),
-            width: 1.0,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text(
-                'CHOOSE DIFFICULTY',
-                style: TextStyle(
-                  fontFamily: 'BebasNeue',
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.headingWhite,
-                  letterSpacing: 1.0,
+      builder: (context) {
+        String selectedDifficulty = 'Easy';
+        int selectedCapacity = 4;
+        
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Dialog(
+              backgroundColor: const Color(0xFF181818),
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: const BorderSide(
+                  color: Color(0xFF222222),
+                  width: 1.0,
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Play a dynamically generated water sort puzzle.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'BebasNeue',
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.subtext,
-                ),
-              ),
-              const SizedBox(height: 24),
-              TangibleButton(
-                text: 'Easy',
-                isSecondary: true,
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const GameView(
-                        levelNumber: 0,
-                        isRandom: true,
-                        randomDifficulty: 'Easy',
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 12),
+                      ...[
+                        {'label': 'EASY', 'value': 'Easy', 'defaultCap': 4},
+                        {'label': 'MEDIUM', 'value': 'Medium', 'defaultCap': 4},
+                        {'label': 'HARD', 'value': 'Hard', 'defaultCap': 5},
+                        {'label': 'EXPERT', 'value': 'Super Hard', 'defaultCap': 5},
+                        {'label': 'EXTREME', 'value': 'Super Duper Hard', 'defaultCap': 6},
+                      ].map((diff) {
+                        final isSelected = selectedDifficulty == diff['value'];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: TangibleButton(
+                            text: diff['label'] as String,
+                            isSecondary: !isSelected,
+                            onPressed: () {
+                              setState(() {
+                                selectedDifficulty = diff['value'] as String;
+                                selectedCapacity = diff['defaultCap'] as int;
+                              });
+                            },
+                          ),
+                        );
+                      }),
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'TUBE CAPACITY',
+                            style: TextStyle(
+                              fontFamily: 'BebasNeue',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.headingWhite,
+                            ),
+                          ),
+                          Text(
+                            '$selectedCapacity',
+                            style: const TextStyle(
+                              fontFamily: 'BebasNeue',
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              TangibleButton(
-                text: 'Medium',
-                isSecondary: true,
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const GameView(
-                        levelNumber: 0,
-                        isRandom: true,
-                        randomDifficulty: 'Medium',
+                      Slider(
+                        value: selectedCapacity.toDouble(),
+                        min: 4,
+                        max: 6,
+                        divisions: 2,
+                        activeColor: AppColors.accent,
+                        inactiveColor: const Color(0xFF222222),
+                        onChanged: (val) {
+                          setState(() {
+                            selectedCapacity = val.round();
+                          });
+                        },
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              TangibleButton(
-                text: 'Hard',
-                isSecondary: true,
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const GameView(
-                        levelNumber: 0,
-                        isRandom: true,
-                        randomDifficulty: 'Hard',
+                      const SizedBox(height: 24),
+                      TangibleButton(
+                        text: 'PLAY PUZZLE',
+                        onPressed: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => GameView(
+                                levelNumber: 0,
+                                isRandom: true,
+                                randomDifficulty: selectedDifficulty,
+                                randomCapacity: selectedCapacity,
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              TangibleButton(
-                text: 'Expert',
-                isSecondary: true,
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const GameView(
-                        levelNumber: 0,
-                        isRandom: true,
-                        randomDifficulty: 'Super Hard',
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text(
+                          'CANCEL',
+                          style: TextStyle(
+                            fontFamily: 'BebasNeue',
+                            color: AppColors.subtext,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                       ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 12),
-              TangibleButton(
-                text: 'Extreme',
-                isSecondary: true,
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const GameView(
-                        levelNumber: 0,
-                        isRandom: true,
-                        randomDifficulty: 'Super Duper Hard',
-                      ),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 20),
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text(
-                  'CANCEL',
-                  style: TextStyle(
-                    fontFamily: 'BebasNeue',
-                    color: AppColors.subtext,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
+                    ],
                   ),
                 ),
               ),
-            ],
-          ),
-        ),
-      ),
+            );
+          },
+        );
+      },
     );
   }
 

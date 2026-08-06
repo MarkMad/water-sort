@@ -16,11 +16,15 @@ class GameView extends ConsumerStatefulWidget {
     required this.levelNumber,
     this.isRandom = false,
     this.randomDifficulty = 'Easy',
+    this.randomColorCount,
+    this.randomCapacity,
   });
 
   final int levelNumber;
   final bool isRandom;
   final String randomDifficulty;
+  final int? randomColorCount;
+  final int? randomCapacity;
 
   @override
   ConsumerState<GameView> createState() => _GameViewState();
@@ -34,7 +38,11 @@ class _GameViewState extends ConsumerState<GameView> {
     super.initState();
     Future.microtask(() {
       if (widget.isRandom) {
-        ref.read(gameViewModelProvider.notifier).loadRandomLevel(widget.randomDifficulty);
+        ref.read(gameViewModelProvider.notifier).loadRandomLevel(
+              widget.randomDifficulty,
+              colorCount: widget.randomColorCount,
+              capacity: widget.randomCapacity,
+            );
       } else {
         ref.read(gameViewModelProvider.notifier).loadLevel(widget.levelNumber);
       }
@@ -451,7 +459,11 @@ class _GameViewState extends ConsumerState<GameView> {
                       if (context.mounted) {
                         Navigator.pop(context);
                         if (state.isRandomMode) {
-                          notifier.loadRandomLevel(state.randomDifficulty ?? 'Easy');
+                          notifier.loadRandomLevel(
+                            state.randomDifficulty ?? 'Easy',
+                            colorCount: state.randomColorCount,
+                            capacity: state.randomCapacity,
+                          );
                         } else {
                           Navigator.pushReplacement(
                             context,

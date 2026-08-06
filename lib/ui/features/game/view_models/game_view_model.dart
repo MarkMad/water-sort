@@ -30,6 +30,8 @@ class GameViewModelState {
     this.isRandomMode = false,
     this.randomDifficulty,
     this.randomSeed,
+    this.randomColorCount,
+    this.randomCapacity,
     this.moveHistory = const [],
     this.timeLeft,
     this.isTimeOut = false,
@@ -50,6 +52,8 @@ class GameViewModelState {
   final bool isRandomMode;
   final String? randomDifficulty;
   final int? randomSeed;
+  final int? randomColorCount;
+  final int? randomCapacity;
   final List<MoveSnapshot> moveHistory;
   final int? timeLeft;
   final bool isTimeOut;
@@ -74,6 +78,8 @@ class GameViewModelState {
     bool? isRandomMode,
     String? randomDifficulty,
     int? randomSeed,
+    int? randomColorCount,
+    int? randomCapacity,
     List<MoveSnapshot>? moveHistory,
     int? Function()? timeLeft,
     bool? isTimeOut,
@@ -97,6 +103,8 @@ class GameViewModelState {
       isRandomMode: isRandomMode ?? this.isRandomMode,
       randomDifficulty: randomDifficulty ?? this.randomDifficulty,
       randomSeed: randomSeed ?? this.randomSeed,
+      randomColorCount: randomColorCount ?? this.randomColorCount,
+      randomCapacity: randomCapacity ?? this.randomCapacity,
       moveHistory: moveHistory ?? this.moveHistory,
       timeLeft: timeLeft != null ? timeLeft() : this.timeLeft,
       isTimeOut: isTimeOut ?? this.isTimeOut,
@@ -235,7 +243,12 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     }
   }
 
-  Future<void> loadRandomLevel(String difficulty, {int? seed}) async {
+  Future<void> loadRandomLevel(
+    String difficulty, {
+    int? colorCount,
+    int? capacity,
+    int? seed,
+  }) async {
     _timer?.cancel();
     final int levelSeed = seed ?? DateTime.now().millisecondsSinceEpoch;
     final isSuperHard = _progressRepository.isSuperHardModeEnabled();
@@ -246,6 +259,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       isRandomMode: true,
       randomDifficulty: difficulty,
       randomSeed: levelSeed,
+      randomColorCount: colorCount,
+      randomCapacity: capacity,
       isSuperHardModeEnabled: isSuperHard,
       isBlurSolvedTubesEnabled: isBlurSolved,
       isInstantPouringEnabled: isInstantPouring,
@@ -253,9 +268,13 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
     try {
       final savedMap = _progressRepository.getSavedLevelState();
+      final savedColorCount = savedMap?['randomColorCount'] as int?;
+      final savedCapacity = savedMap?['randomCapacity'] as int?;
       if (savedMap != null &&
           savedMap['isRandomMode'] == true &&
           savedMap['randomDifficulty'] == difficulty &&
+          savedColorCount == colorCount &&
+          savedCapacity == capacity &&
           (seed == null || savedMap['randomSeed'] == seed)) {
         final savedTubes = (savedMap['tubes'] as List).map((t) {
           final tMap = Map<dynamic, dynamic>.from(t as Map);
@@ -291,6 +310,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isRandomMode: true,
           randomDifficulty: difficulty,
           randomSeed: savedMap['randomSeed'] as int?,
+          randomColorCount: savedColorCount,
+          randomCapacity: savedCapacity,
           moveCount: savedMap['moveCount'] as int,
           moveHistory: savedHistory,
           isSuperHardModeEnabled: isSuperHard,
@@ -304,31 +325,50 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         return;
       }
 
-      int colorCount = 3;
-      int capacity = 4;
-      if (difficulty == 'Medium') {
-        colorCount = 6;
-        capacity = 4;
-      } else if (difficulty == 'Hard') {
-        colorCount = 9;
-        capacity = 5;
-      } else if (difficulty == 'Super Hard') {
-        colorCount = 12;
-        capacity = 5;
-      } else if (difficulty == 'Super Duper Hard') {
-        colorCount = 16;
-        capacity = 6;
+      int finalColorCount = colorCount ?? 3;
+      int finalCapacity = capacity ?? 4;
+      if (colorCount == null && capacity == null) {
+        if (difficulty == 'Medium') {
+          finalColorCount = 6;
+          finalCapacity = 4;
+        } else if (difficulty == 'Hard') {
+          finalColorCount = 9;
+          finalCapacity = 5;
+        } else if (difficulty == 'Super Hard') {
+          finalColorCount = 12;
+          finalCapacity = 5;
+        } else if (difficulty == 'Super Duper Hard') {
+          finalColorCount = 16;
+          finalCapacity = 6;
+        }
+      } else {
+        if (colorCount == null) {
+          if (difficulty == 'Easy') finalColorCount = 3;
+          else if (difficulty == 'Medium') finalColorCount = 6;
+          else if (difficulty == 'Hard') finalColorCount = 9;
+          else if (difficulty == 'Super Hard') finalColorCount = 12;
+          else if (difficulty == 'Super Duper Hard') finalColorCount = 16;
+        }
+        if (capacity == null) {
+          if (difficulty == 'Easy') finalCapacity = 4;
+          else if (difficulty == 'Medium') finalCapacity = 4;
+          else if (difficulty == 'Hard') finalCapacity = 5;
+          else if (difficulty == 'Super Hard') finalCapacity = 5;
+          else if (difficulty == 'Super Duper Hard') finalCapacity = 6;
+        }
       }
 
       final level = _levelGenerator.generateRandom(
-        colorCount: colorCount,
+        colorCount: finalColorCount,
         seed: levelSeed,
-        capacity: capacity,
+        capacity: finalCapacity,
       );
 
       state = state.copyWith(
         level: level,
         isLoading: false,
+        randomColorCount: finalColorCount,
+        randomCapacity: finalCapacity,
       );
 
       _progressRepository.clearActiveLevelState();
@@ -495,7 +535,12 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     _progressRepository.clearActiveLevelState();
     if (state.level != null) {
       if (state.isRandomMode) {
-        loadRandomLevel(state.randomDifficulty ?? 'Easy', seed: state.randomSeed);
+        loadRandomLevel(
+          state.randomDifficulty ?? 'Easy',
+          colorCount: state.randomColorCount,
+          capacity: state.randomCapacity,
+          seed: state.randomSeed,
+        );
       } else {
         loadLevel(state.level!.levelNumber);
       }
@@ -531,6 +576,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       'isRandomMode': state.isRandomMode,
       'randomDifficulty': state.randomDifficulty,
       'randomSeed': state.randomSeed,
+      'randomColorCount': state.randomColorCount,
+      'randomCapacity': state.randomCapacity,
       'moveCount': state.moveCount,
       'timeLeft': state.timeLeft,
       'optimalMoves': level.optimalMoves,
