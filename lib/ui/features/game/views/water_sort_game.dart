@@ -150,11 +150,11 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     final double maxTubeWidth = (containerWidth - (cols + 1) * spacing) / cols;
     final double maxTubeHeight = (containerHeight - rows * spacing) / rows;
 
-    double tubeWidth = maxTubeWidth.clamp(0.0, 52.0);
+    double tubeWidth = maxTubeWidth.clamp(0.0, 80.0);
     double tubeHeight = tubeWidth * aspectRatio;
 
     if (tubeHeight > maxTubeHeight) {
-      tubeHeight = maxTubeHeight.clamp(0.0, 166.0);
+      tubeHeight = maxTubeHeight.clamp(0.0, 256.0);
       tubeWidth = tubeHeight / aspectRatio;
     }
 
@@ -688,14 +688,14 @@ class TubeComponent extends PositionComponent {
       final codePoint = icon.codePoint;
       final fontFamily = icon.fontFamily ?? 'MaterialIcons';
 
-      final maxDiameter = math.min(size.x * 0.68, segmentHeight * 0.68);
+      final maxDiameter = math.min(size.x * 0.85, segmentHeight * 0.85);
       final bgPaint = Paint()
         ..color = Colors.white.withValues(alpha: 0.18 * opacity)
         ..style = PaintingStyle.fill;
       
       canvas.drawCircle(Offset(size.x / 2, centerY), maxDiameter / 2, bgPaint);
 
-      final iconSize = maxDiameter * 0.6;
+      final iconSize = maxDiameter * 0.8;
       final textPainter = TextPainter(
         textDirection: TextDirection.ltr,
         text: TextSpan(

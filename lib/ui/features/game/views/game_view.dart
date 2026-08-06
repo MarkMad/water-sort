@@ -87,7 +87,6 @@ class _GameViewState extends ConsumerState<GameView> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top Navigation Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
@@ -112,24 +111,153 @@ class _GameViewState extends ConsumerState<GameView> {
                       ),
                     ),
                   ),
-                  Text(
-                    state.isRandomMode
-                        ? 'RANDOM PUZZLE'
-                        : widget.levelNumber % 10 == 0
-                            ? 'LEVEL ${widget.levelNumber} (BOSS)'
-                            : widget.levelNumber % 5 == 0
-                                ? 'LEVEL ${widget.levelNumber} (SPECIAL)'
-                                : 'LEVEL ${widget.levelNumber}',
-                    style: TextStyle(
-                      fontFamily: 'BebasNeue',
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: !state.isRandomMode && widget.levelNumber % 10 == 0
-                          ? Colors.redAccent
-                          : !state.isRandomMode && widget.levelNumber % 5 == 0
-                              ? Colors.amber
-                              : AppColors.headingWhite,
-                      letterSpacing: 1.0,
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (!state.isRandomMode) ...[
+                          Text(
+                            widget.levelNumber % 10 == 0
+                                ? 'LEVEL ${widget.levelNumber} (BOSS)'
+                                : widget.levelNumber % 5 == 0
+                                    ? 'LEVEL ${widget.levelNumber} (SPECIAL)'
+                                    : 'LEVEL ${widget.levelNumber}',
+                            style: TextStyle(
+                              fontFamily: 'BebasNeue',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: widget.levelNumber % 10 == 0
+                                  ? Colors.redAccent
+                                  : widget.levelNumber % 5 == 0
+                                      ? Colors.amber
+                                      : AppColors.headingWhite,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                        ],
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E1E24).withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: const Color(0xFF2E2E3A),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.accent.withOpacity(0.1),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.swap_vert_rounded,
+                                      size: 14,
+                                      color: AppColors.accent,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '${state.moveCount}',
+                                    style: const TextStyle(
+                                      fontFamily: 'BebasNeue',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w900,
+                                      color: AppColors.headingWhite,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (state.timeLeft != null) ...[
+                                Container(
+                                  width: 1.0,
+                                  height: 16,
+                                  color: const Color(0xFF3E3E4D),
+                                ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: (state.timeLeft! <= 15 ? Colors.redAccent : AppColors.accent).withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.timer_rounded,
+                                        size: 14,
+                                        color: state.timeLeft! <= 15 ? Colors.redAccent : AppColors.accent,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      _formatTime(state.timeLeft!),
+                                      style: TextStyle(
+                                        fontFamily: 'BebasNeue',
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w900,
+                                        color: state.timeLeft! <= 15 ? Colors.redAccent : AppColors.headingWhite,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                              Container(
+                                width: 1.0,
+                                height: 16,
+                                color: const Color(0xFF3E3E4D),
+                              ),
+                              GestureDetector(
+                                onTap: state.canUndo
+                                    ? () => ref.read(gameViewModelProvider.notifier).undoMove()
+                                    : null,
+                                behavior: HitTestBehavior.opaque,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: (state.canUndo ? AppColors.accent : AppColors.subtext).withOpacity(0.1),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        Icons.undo_rounded,
+                                        size: 14,
+                                        color: state.canUndo
+                                            ? AppColors.accent
+                                            : AppColors.subtext.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'UNDO',
+                                      style: TextStyle(
+                                        fontFamily: 'BebasNeue',
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w900,
+                                        color: state.canUndo
+                                            ? AppColors.accent
+                                            : AppColors.subtext.withOpacity(0.3),
+                                        letterSpacing: 0.6,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   GestureDetector(
@@ -158,8 +286,6 @@ class _GameViewState extends ConsumerState<GameView> {
                 ],
               ),
             ),
-
-            // Game body
             Expanded(
               child: state.isLoading
                   ? const Center(child: CircularProgressIndicator())
@@ -191,188 +317,11 @@ class _GameViewState extends ConsumerState<GameView> {
     final level = state.level;
     if (level == null) return const SizedBox.shrink();
 
-    return Column(
-      children: [
-        Container(
-          margin: const EdgeInsets.fromLTRB(20, 6, 20, 14),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFF131317),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: const Color(0xFF23232D),
-              width: 1.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.3),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1C1C24),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.swap_vert_rounded,
-                        size: 16,
-                        color: AppColors.accent,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          '${state.moveCount}',
-                          style: const TextStyle(
-                            fontFamily: 'BebasNeue',
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.headingWhite,
-                          ),
-                        ),
-                        const SizedBox(height: 1),
-                        const Text(
-                          'MOVES',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.subtext,
-                            letterSpacing: 0.6,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              if (state.timeLeft != null) ...[
-                Container(
-                  width: 1.0,
-                  height: 24,
-                  color: const Color(0xFF2A2A35),
-                ),
-                Expanded(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.timer_rounded,
-                        size: 16,
-                        color: state.timeLeft! <= 15 ? Colors.redAccent : AppColors.accent,
-                      ),
-                      const SizedBox(width: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            _formatTime(state.timeLeft!),
-                            style: TextStyle(
-                              fontFamily: 'BebasNeue',
-                              fontSize: 18,
-                              fontWeight: FontWeight.w900,
-                              color: state.timeLeft! <= 15 ? Colors.redAccent : AppColors.headingWhite,
-                            ),
-                          ),
-                          const SizedBox(height: 1),
-                          Text(
-                            'TIME LEFT',
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: state.timeLeft! <= 15 ? Colors.redAccent.withOpacity(0.7) : AppColors.subtext,
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-              Container(
-                width: 1.0,
-                height: 24,
-                color: const Color(0xFF2A2A35),
-              ),
-              Expanded(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onTap: state.canUndo
-                          ? () => ref.read(gameViewModelProvider.notifier).undoMove()
-                          : null,
-                      behavior: HitTestBehavior.opaque,
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 200),
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: state.canUndo
-                              ? AppColors.accent.withOpacity(0.1)
-                              : const Color(0xFF17171C),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: state.canUndo
-                                ? AppColors.accent.withOpacity(0.3)
-                                : const Color(0xFF22222A),
-                            width: 1.0,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.undo_rounded,
-                              size: 14,
-                              color: state.canUndo
-                                  ? AppColors.accent
-                                  : AppColors.subtext.withOpacity(0.3),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'UNDO',
-                              style: TextStyle(
-                                fontFamily: 'BebasNeue',
-                                fontSize: 13,
-                                fontWeight: FontWeight.w900,
-                                color: state.canUndo
-                                    ? AppColors.accent
-                                    : AppColors.subtext.withOpacity(0.3),
-                                letterSpacing: 0.6,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: _game != null
-                ? GameWidget(game: _game!)
-                : const SizedBox.shrink(),
-          ),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+      child: _game != null
+          ? GameWidget(game: _game!)
+          : const SizedBox.shrink(),
     );
   }
 
