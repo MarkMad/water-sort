@@ -166,4 +166,14 @@ class HiveService {
     starsMap[levelNumber] = stars;
     await _settingsBox.put('${profileId}_level_stars', starsMap);
   }
+
+  String getThemePack() {
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_theme_pack', defaultValue: 'midnight') as String;
+  }
+
+  Future<void> setThemePack(String themeName) async {
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_theme_pack', themeName);
+  }
 }

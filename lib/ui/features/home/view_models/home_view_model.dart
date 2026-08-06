@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:watersort/data/repositories/progress_repository.dart';
 import 'package:watersort/domain/models/user_progress.dart';
 import 'package:watersort/domain/models/user_profile.dart';
+import 'package:watersort/ui/core/theme/app_colors.dart';
 
 class HomeViewModelState {
   const HomeViewModelState({
@@ -15,6 +16,7 @@ class HomeViewModelState {
     this.isBlurSolvedTubesEnabled = false,
     this.isInstantPouringEnabled = false,
     this.levelStars = const {},
+    this.activeTheme = ThemePack.midnight,
   });
 
   final UserProgress? progress;
@@ -26,6 +28,7 @@ class HomeViewModelState {
   final bool isBlurSolvedTubesEnabled;
   final bool isInstantPouringEnabled;
   final Map<dynamic, dynamic> levelStars;
+  final ThemePack activeTheme;
 
   HomeViewModelState copyWith({
     UserProgress? progress,
@@ -37,6 +40,7 @@ class HomeViewModelState {
     bool? isBlurSolvedTubesEnabled,
     bool? isInstantPouringEnabled,
     Map<dynamic, dynamic>? levelStars,
+    ThemePack? activeTheme,
   }) {
     return HomeViewModelState(
       progress: progress ?? this.progress,
@@ -48,6 +52,7 @@ class HomeViewModelState {
       isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled ?? this.isBlurSolvedTubesEnabled,
       isInstantPouringEnabled: isInstantPouringEnabled ?? this.isInstantPouringEnabled,
       levelStars: levelStars ?? this.levelStars,
+      activeTheme: activeTheme ?? this.activeTheme,
     );
   }
 }
@@ -69,6 +74,12 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
       final isBlurSolvedTubesEnabled = _progressRepository.isBlurSolvedTubesEnabled();
       final isInstantPouringEnabled = _progressRepository.isInstantPouringEnabled();
       final levelStars = _progressRepository.getAllLevelStars();
+      final themeName = _progressRepository.getThemePack();
+      final theme = ThemePack.values.firstWhere(
+        (t) => t.name == themeName,
+        orElse: () => ThemePack.midnight,
+      );
+      AppColors.setTheme(theme);
       state = state.copyWith(
         progress: progress,
         activeProfile: () => activeProfile,
@@ -78,6 +89,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
         isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled,
         isInstantPouringEnabled: isInstantPouringEnabled,
         levelStars: levelStars,
+        activeTheme: theme,
         isLoading: false,
       );
     } catch (e) {
@@ -107,6 +119,12 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
     final newValue = !state.isInstantPouringEnabled;
     await _progressRepository.setInstantPouringEnabled(newValue);
     state = state.copyWith(isInstantPouringEnabled: newValue);
+  }
+
+  Future<void> setThemePack(ThemePack theme) async {
+    await _progressRepository.setThemePack(theme.name);
+    AppColors.setTheme(theme);
+    state = state.copyWith(activeTheme: theme);
   }
 
   Future<void> resetProgress() async {

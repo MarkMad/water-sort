@@ -25,7 +25,9 @@ class _TangibleButtonState extends State<TangibleButton> {
 
   @override
   Widget build(BuildContext context) {
-    final themeColor = widget.isSecondary ? const Color(0xFF808080) : AppColors.accent;
+    final themeColor = widget.isSecondary
+        ? const Color(0xFF808080)
+        : AppColors.accent;
     final isInteractive = widget.onPressed != null;
     final isActive = (_isHovered || _isPressed) && isInteractive;
 
@@ -75,9 +77,9 @@ class _TangibleButtonState extends State<TangibleButton> {
             ),
             boxShadow: [
               if (show3DShadow)
-                const BoxShadow(
+                BoxShadow(
                   color: AppColors.accent,
-                  offset: Offset(0, 3.5),
+                  offset: const Offset(0, 3.5),
                   blurRadius: 0,
                   spreadRadius: -0.5,
                 ),
@@ -94,7 +96,8 @@ class _TangibleButtonState extends State<TangibleButton> {
             style: TextStyle(
               fontFamily: 'BebasNeue',
               color: textColor,
-              fontSize: 18, // slightly larger font size for BebasNeue because it's narrower
+              fontSize:
+                  18, // slightly larger font size for BebasNeue because it's narrower
               fontWeight: FontWeight.w900,
               letterSpacing: 1.5,
             ),

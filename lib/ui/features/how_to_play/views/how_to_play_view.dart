@@ -41,7 +41,7 @@ class HowToPlayView extends StatelessWidget {
                     child: Center(
                       child: Text(
                         'HOW TO PLAY',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontFamily: 'BebasNeue',
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
@@ -153,32 +153,32 @@ class HowToPlayView extends StatelessWidget {
               children: [
                 Text(
                   'STEP $num',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'BebasNeue',
                     fontSize: 14,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.accent, // Lime Green (#86EF4D)
+                    color: AppColors.accent,
                     letterSpacing: 1.0,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   title.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'BebasNeue',
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
-                    color: AppColors.headingWhite, // Solid White (#FFFFFF)
+                    color: AppColors.headingWhite,
                     letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   desc,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'BebasNeue',
                     fontSize: 15,
-                    color: AppColors.subtext, // Muted Gray (#808080)
+                    color: AppColors.subtext,
                     height: 1.2,
                   ),
                 ),

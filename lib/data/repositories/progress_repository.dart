@@ -152,4 +152,12 @@ class ProgressRepository {
   Future<void> saveLevelStars(int levelNumber, int stars) async {
     await _hiveService.saveLevelStars(levelNumber, stars);
   }
+
+  String getThemePack() {
+    return _hiveService.getThemePack();
+  }
+
+  Future<void> setThemePack(String themeName) async {
+    await _hiveService.setThemePack(themeName);
+  }
 }

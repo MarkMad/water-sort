@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'package:watersort/ui/core/theme/app_colors.dart';
 import 'package:watersort/ui/core/widgets/tangible_button.dart';
@@ -26,12 +25,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
     Future.microtask(() => ref.read(homeViewModelProvider.notifier).loadProgress());
   }
 
-  Future<void> _launchUrl(String urlString) async {
-    final Uri url = Uri.parse(urlString);
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      debugPrint('Could not launch $url');
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -48,25 +42,6 @@ class _HomeViewState extends ConsumerState<HomeView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
-                    onTap: () => _launchUrl('https://github.com/sidhant947/water-sort'),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF1C1C22),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: const Color(0xFF222222),
-                          width: 1.0,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.star_rounded,
-                        size: 20,
-                        color: Colors.amber,
-                      ),
-                    ),
-                  ),
                   if (state.activeProfile != null)
                     GestureDetector(
                       onTap: () => _showProfileSwitcherDialog(context),
@@ -105,7 +80,9 @@ class _HomeViewState extends ConsumerState<HomeView> {
                           ],
                         ),
                       ),
-                    ),
+                    )
+                  else
+                    const SizedBox.shrink(),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -159,7 +136,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.water_drop_rounded,
                       size: 52,
                       color: AppColors.accent,
@@ -182,7 +159,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
               const SizedBox(height: 24),
 
               // Game Title
-              const Text(
+              Text(
                 'WATER SORT',
                 style: TextStyle(
                   fontFamily: 'BebasNeue',
@@ -193,7 +170,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 ),
               ),
               const SizedBox(height: 4),
-              const Text(
+              Text(
                 'A COZY COLOR SORTING GAME',
                 style: TextStyle(
                   fontFamily: 'BebasNeue',
@@ -227,7 +204,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   ),
                   child: Text(
                     'Level ${state.progress!.currentLevel}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontFamily: 'BebasNeue',
                       fontSize: 16,
                       fontWeight: FontWeight.w900,
@@ -366,7 +343,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
+                          Text(
                             'TUBE CAPACITY',
                             style: TextStyle(
                               fontFamily: 'BebasNeue',
@@ -377,7 +354,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                           ),
                           Text(
                             '$selectedCapacity',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontFamily: 'BebasNeue',
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -420,7 +397,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       const SizedBox(height: 12),
                       TextButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text(
+                        child: Text(
                           'CANCEL',
                           style: TextStyle(
                             fontFamily: 'BebasNeue',
@@ -463,7 +440,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       'SELECT PROFILE',
                       style: TextStyle(
                         fontFamily: 'BebasNeue',
@@ -538,7 +515,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                                         },
                                       ),
                                       if (isActive)
-                                        const Icon(
+                                        Icon(
                                           Icons.check_circle_rounded,
                                           color: AppColors.accent,
                                           size: 20,
@@ -574,7 +551,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text(
+                      child: Text(
                         'CANCEL',
                         style: TextStyle(
                           fontFamily: 'BebasNeue',
@@ -619,7 +596,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       'CREATE PROFILE',
                       style: TextStyle(
                         fontFamily: 'BebasNeue',
@@ -644,13 +621,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.accent),
+                          borderSide: BorderSide(color: AppColors.accent),
                         ),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 16),
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'SELECT AVATAR EMOJI',
@@ -705,7 +682,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     const SizedBox(height: 8),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
-                      child: const Text(
+                      child: Text(
                         'CANCEL',
                         style: TextStyle(
                           fontFamily: 'BebasNeue',
@@ -750,7 +727,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       'EDIT PROFILE',
                       style: TextStyle(
                         fontFamily: 'BebasNeue',
@@ -775,13 +752,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.accent),
+                          borderSide: BorderSide(color: AppColors.accent),
                         ),
                       ),
                       onChanged: (_) => setState(() {}),
                     ),
                     const SizedBox(height: 16),
-                    const Align(
+                    Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'SELECT AVATAR EMOJI',
@@ -840,7 +817,7 @@ class _HomeViewState extends ConsumerState<HomeView> {
                         Navigator.pop(context);
                         _showProfileSwitcherDialog(context);
                       },
-                      child: const Text(
+                      child: Text(
                         'CANCEL',
                         style: TextStyle(
                           fontFamily: 'BebasNeue',

@@ -8,7 +8,7 @@ class AppTheme {
     brightness: Brightness.dark,
     scaffoldBackgroundColor: AppColors.bg, // Deep Off-Black (#121212)
     fontFamily: 'BebasNeue', // Set default fallback font family globally
-    appBarTheme: const AppBarTheme(
+    appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
       elevation: 0,
       centerTitle: true,
@@ -21,11 +21,11 @@ class AppTheme {
       ),
       iconTheme: IconThemeData(color: Colors.white),
     ),
-    dividerTheme: const DividerThemeData(
+    dividerTheme: DividerThemeData(
       color: AppColors.gridLines, // Faint Charcoal (#222222)
       thickness: 1,
     ),
-    textTheme: const TextTheme(
+    textTheme: TextTheme(
       // All headings in all caps, high-impact condensed sans-serif (Bebas Neue)
       displayLarge: TextStyle(
         fontFamily: 'BebasNeue',
@@ -86,5 +86,6 @@ class AppTheme {
     ),
   );
 
-  static ThemeData get light => dark; // No light theme - same game aesthetic universally
+  static ThemeData get light =>
+      dark; // No light theme - same game aesthetic universally
 }

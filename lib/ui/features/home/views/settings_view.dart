@@ -9,6 +9,7 @@ class SettingsView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(homeViewModelProvider);
+    final themeSpecs = _getThemeSpecs();
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -39,7 +40,7 @@ class SettingsView extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  const Text(
+                  Text(
                     'SETTINGS',
                     style: TextStyle(
                       fontFamily: 'BebasNeue',
@@ -86,6 +87,138 @@ class SettingsView extends ConsumerWidget {
                     value: state.isInstantPouringEnabled,
                     onTap: () => ref.read(homeViewModelProvider.notifier).toggleInstantPouring(),
                   ),
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF16161B),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFF22222B),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: AppColors.accent.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Icon(
+                                Icons.palette_rounded,
+                                color: AppColors.accent,
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'THEME PACKS',
+                                    style: TextStyle(
+                                      fontFamily: 'BebasNeue',
+                                      fontSize: 16,
+                                      color: AppColors.headingWhite,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Choose a theme pack to change the UI background, accents, and tube water colors.',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: AppColors.subtext,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        GridView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          shrinkWrap: true,
+                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: 2.2,
+                          ),
+                          itemCount: ThemePack.values.length,
+                          itemBuilder: (context, index) {
+                            final theme = ThemePack.values[index];
+                            final spec = themeSpecs[theme]!;
+                            final isSelected = state.activeTheme == theme;
+
+                            return GestureDetector(
+                              onTap: () => ref.read(homeViewModelProvider.notifier).setThemePack(theme),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? spec.accent.withValues(alpha: 0.08)
+                                      : const Color(0xFF1E1E26),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected ? spec.accent : const Color(0xFF2C2C35),
+                                    width: isSelected ? 2.0 : 1.5,
+                                  ),
+                                  boxShadow: [
+                                    if (isSelected)
+                                      BoxShadow(
+                                        color: spec.accent.withValues(alpha: 0.15),
+                                        blurRadius: 8,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        spec.name.toUpperCase(),
+                                        style: TextStyle(
+                                          fontFamily: 'BebasNeue',
+                                          fontSize: 16,
+                                          color: isSelected ? AppColors.headingWhite : AppColors.subtext,
+                                          letterSpacing: 0.8,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    Container(
+                                      width: 22,
+                                      height: 22,
+                                      decoration: BoxDecoration(
+                                        color: spec.bg,
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: spec.accent,
+                                          width: 2.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -134,7 +267,7 @@ class SettingsView extends ConsumerWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontFamily: 'BebasNeue',
                     fontSize: 16,
                     color: AppColors.headingWhite,
@@ -144,7 +277,7 @@ class SettingsView extends ConsumerWidget {
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 12,
                     color: AppColors.subtext,
                     height: 1.3,
@@ -162,6 +295,57 @@ class SettingsView extends ConsumerWidget {
       ),
     );
   }
+
+  Map<ThemePack, _ThemeSpec> _getThemeSpecs() {
+    return {
+      ThemePack.midnight: const _ThemeSpec(
+        name: 'Midnight',
+        bg: Color(0xFF121212),
+        accent: Color(0xFF86EF4D),
+      ),
+      ThemePack.cyberpunk: const _ThemeSpec(
+        name: 'Cyberpunk',
+        bg: Color(0xFF0F0B1E),
+        accent: Color(0xFFFF007F),
+      ),
+      ThemePack.forest: const _ThemeSpec(
+        name: 'Forest',
+        bg: Color(0xFF0D140F),
+        accent: Color(0xFF50C878),
+      ),
+      ThemePack.space: const _ThemeSpec(
+        name: 'Space',
+        bg: Color(0xFF090A15),
+        accent: Color(0xFFBD93F9),
+      ),
+      ThemePack.retro: const _ThemeSpec(
+        name: 'Retro',
+        bg: Color(0xFF17130E),
+        accent: Color(0xFFFFB86C),
+      ),
+      ThemePack.sunset: const _ThemeSpec(
+        name: 'Sunset',
+        bg: Color(0xFF1E0E25),
+        accent: Color(0xFFF9844A),
+      ),
+      ThemePack.neon: const _ThemeSpec(
+        name: 'Neon',
+        bg: Color(0xFF050505),
+        accent: Color(0xFF39FF14),
+      ),
+    };
+  }
+}
+
+class _ThemeSpec {
+  final String name;
+  final Color bg;
+  final Color accent;
+  const _ThemeSpec({
+    required this.name,
+    required this.bg,
+    required this.accent,
+  });
 }
 
 class _PremiumSwitch extends StatelessWidget {

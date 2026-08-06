@@ -58,7 +58,7 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
                       ),
                     ),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
                         'Levels',
@@ -157,7 +157,7 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
       cardBg = const Color(0xFF1C1C22);
       content = Text(
         '$levelNumber',
-        style: const TextStyle(
+        style: TextStyle(
           fontFamily: 'BebasNeue',
           fontSize: 26,
           color: AppColors.accent,
@@ -166,7 +166,7 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
       );
     } else {
       // Locked state
-      content = const Icon(
+      content = Icon(
         Icons.lock_outline_rounded,
         size: 18,
         color: AppColors.subtext,

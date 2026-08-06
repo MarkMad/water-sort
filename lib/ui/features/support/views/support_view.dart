@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'package:watersort/ui/core/theme/app_colors.dart';
 
 class SupportView extends StatelessWidget {
@@ -21,7 +20,6 @@ class SupportView extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Custom App Bar
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
@@ -35,18 +33,19 @@ class SupportView extends StatelessWidget {
                         shape: BoxShape.circle,
                         border: Border.all(color: Colors.white24, width: 1.0),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_ios_new_rounded,
                         size: 18,
                         color: AppColors.headingWhite,
                       ),
                     ),
                   ),
-                  const Expanded(
+                  Expanded(
                     child: Center(
                       child: Text(
                         'SUPPORT',
                         style: TextStyle(
+                          fontFamily: 'BebasNeue',
                           fontSize: 26,
                           fontWeight: FontWeight.w900,
                           color: AppColors.headingWhite,
@@ -59,117 +58,90 @@ class SupportView extends StatelessWidget {
                 ],
               ),
             ),
-
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Header Card
                     Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(24),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFEF4444), Color(0xFFEC4899)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Column(
                         children: [
                           Container(
-                            width: 64,
-                            height: 64,
+                            padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: AppColors.accent.withValues(alpha: 0.15),
                               shape: BoxShape.circle,
                             ),
-                            child: const Icon(
-                              Icons.favorite_rounded,
-                              color: Colors.white,
-                              size: 32,
+                            child: Icon(
+                              Icons.volunteer_activism_rounded,
+                              color: AppColors.accent,
+                              size: 40,
                             ),
                           ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'SUPPORT WATER SORT',
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                              color: Colors.white,
-                              letterSpacing: 1.0,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 20),
                           Text(
-                            'If you enjoy the game, consider supporting its development.',
+                            'KEEP IT COZY & AD-FREE',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'BebasNeue',
+                              fontSize: 26,
+                              fontWeight: FontWeight.w900,
+                              color: AppColors.headingWhite,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Water Sort is 100% free, open-source, and has absolutely zero ads or tracking. Keeping the game continuously polished and ad-free takes dedicated time and resources.\n\nIf the sorting puzzles bring you a sense of relaxation or joy, please consider backing development to keep the game alive and cozy!',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 14,
-                              color: Colors.white.withValues(alpha: 0.9),
-                              height: 1.4,
+                              color: AppColors.subtext,
+                              height: 1.45,
                             ),
                           ),
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-
-                    // Section: One-time Support
-                    _sectionHeader('ONE-TIME SUPPORT'),
-
-                    const SizedBox(height: 12),
-
-                    _supportOption(
-                      context,
-                      title: 'Buy Me a Coffee',
-                      description: 'Quick tip (charges me a 5% cut)',
+                    const SizedBox(height: 32),
+                    Text(
+                      'HOW TO SUPPORT',
+                      style: TextStyle(
+                        fontFamily: 'BebasNeue',
+                        fontSize: 16,
+                        color: AppColors.subtext,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildInteractiveCard(
+                      title: 'TIP ONE TIME ON KO-FI',
+                      description: 'Quickly buy a coffee or fuel a coding session. Simple, secure, instant, and directly supports the project.',
                       icon: Icons.coffee_rounded,
-                      color: const Color(0xFFFFDD00),
-                      url: 'https://buymeacoffee.com/sidhant947',
+                      color: const Color(0xFFFF5E5B),
+                      actionText: 'TIP VIA KO-FI',
+                      onTap: () => _launchUrl('https://ko-fi.com/sidhant947'),
                     ),
-
-                    const SizedBox(height: 12),
-
-                    _supportOption(
-                      context,
-                      title: 'Ko-fi',
-                      description: 'Simple support (doesn\'t charge any cut)',
-                      icon: Icons.local_cafe_rounded,
-                      color: const Color(0xFF29abe0),
-                      url: 'https://ko-fi.com/sidhant947',
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // Section: Monthly Support
-                    _sectionHeader('RECURRING SUPPORT'),
-
-                    const SizedBox(height: 12),
-
-                    _supportOption(
-                      context,
-                      title: 'GitHub Sponsors',
-                      description: 'Monthly support (100% goes to developer)',
-                      icon: Icons.favorite_rounded,
-                      color: const Color(0xFFEA4AAA),
-                      url: 'https://github.com/sponsors/sidhant947',
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    _supportOption(
-                      context,
-                      title: 'Liberapay',
-                      description: 'Weekly recurring donations',
+                    const SizedBox(height: 16),
+                    _buildInteractiveCard(
+                      title: 'BECOME A CONSISTENT BACKER',
+                      description: 'Sustainable recurring pledges (weekly or monthly) to support continuous updates and further development.',
                       icon: Icons.autorenew_rounded,
-                      color: const Color(0xFF369449),
-                      url: 'https://liberapay.com/sidhant947',
+                      color: const Color(0xFF00B4D8),
+                      actionText: 'SPONSOR ON LIBERAPAY',
+                      onTap: () => _launchUrl('https://liberapay.com/sidhant947'),
                     ),
-
+                    const SizedBox(height: 16),
+                    _buildInteractiveCard(
+                      title: 'STAR THE REPOSITORY',
+                      description: 'Show your appreciation for free by starring the open-source repository on GitHub. It boosts project visibility!',
+                      icon: Icons.star_rounded,
+                      color: const Color(0xFFF9C74F),
+                      actionText: 'STAR ON GITHUB',
+                      onTap: () => _launchUrl('https://github.com/sidhant947/water-sort'),
+                    ),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -181,77 +153,101 @@ class SupportView extends StatelessWidget {
     );
   }
 
-  Widget _sectionHeader(String title) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Text(
-        title,
-        style: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: AppColors.subtext,
-          letterSpacing: 1.2,
-        ),
-      ),
-    );
-  }
-
-  Widget _supportOption(
-    BuildContext context, {
+  Widget _buildInteractiveCard({
     required String title,
     required String description,
     required IconData icon,
     required Color color,
-    required String url,
+    required String actionText,
+    required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: () => _launchUrl(url),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.darkSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white24, width: 1.0),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.darkSurface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white10,
+          width: 1.5,
         ),
-        child: Row(
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.headingWhite,
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      icon,
+                      color: color,
+                      size: 26,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    description,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AppColors.subtext,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          style: TextStyle(
+                            fontFamily: 'BebasNeue',
+                            fontSize: 16,
+                            color: AppColors.headingWhite,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          description,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.subtext,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right_rounded,
-              color: AppColors.subtext,
-              size: 22,
+            InkWell(
+              onTap: onTap,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                color: color.withValues(alpha: 0.15),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      actionText,
+                      style: TextStyle(
+                        fontFamily: 'BebasNeue',
+                        fontSize: 14,
+                        color: color,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      Icons.arrow_forward_rounded,
+                      color: color,
+                      size: 14,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ],
         ),
