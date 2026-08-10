@@ -93,19 +93,36 @@ class _HomeViewState extends ConsumerState<HomeView> {
                       );
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1C1C22),
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(20),
                         border: Border.all(
                           color: const Color(0xFF222222),
                           width: 1.0,
                         ),
                       ),
-                      child: const Icon(
-                        Icons.favorite_rounded,
-                        size: 20,
-                        color: Colors.redAccent,
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.favorite_rounded,
+                            size: 16,
+                            color: Colors.redAccent,
+                          ),
+                          SizedBox(width: 6),
+                          Text(
+                            'Support',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

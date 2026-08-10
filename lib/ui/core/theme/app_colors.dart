@@ -8,6 +8,16 @@ enum ThemePack {
   retro,
   sunset,
   neon,
+  ocean,
+  volcano,
+  aurora,
+  lavender,
+  desert,
+  glitch,
+  sakura,
+  monochrome,
+  aquamarine,
+  solar,
 }
 
 class AppColors {
@@ -31,6 +41,16 @@ class AppColors {
       case ThemePack.retro: return const Color(0xFFFFB86C);
       case ThemePack.sunset: return const Color(0xFFF9844A);
       case ThemePack.neon: return const Color(0xFF39FF14);
+      case ThemePack.ocean: return const Color(0xFF00D2FF);
+      case ThemePack.volcano: return const Color(0xFFFF4500);
+      case ThemePack.aurora: return const Color(0xFF00FFCC);
+      case ThemePack.lavender: return const Color(0xFFE0B0FF);
+      case ThemePack.desert: return const Color(0xFFE6C229);
+      case ThemePack.glitch: return const Color(0xFF00FF00);
+      case ThemePack.sakura: return const Color(0xFFFFB7C5);
+      case ThemePack.monochrome: return const Color(0xFFE0E0E0);
+      case ThemePack.aquamarine: return const Color(0xFF7FFFD4);
+      case ThemePack.solar: return const Color(0xFFFFCC00);
     }
   }
 
@@ -46,6 +66,16 @@ class AppColors {
       case ThemePack.retro: return const Color(0xFF17130E);
       case ThemePack.sunset: return const Color(0xFF1E0E25);
       case ThemePack.neon: return const Color(0xFF050505);
+      case ThemePack.ocean: return const Color(0xFF0A192F);
+      case ThemePack.volcano: return const Color(0xFF1A0A0A);
+      case ThemePack.aurora: return const Color(0xFF0B1B1E);
+      case ThemePack.lavender: return const Color(0xFF15101F);
+      case ThemePack.desert: return const Color(0xFF221A0F);
+      case ThemePack.glitch: return const Color(0xFF0D0208);
+      case ThemePack.sakura: return const Color(0xFF261820);
+      case ThemePack.monochrome: return const Color(0xFF1A1A1A);
+      case ThemePack.aquamarine: return const Color(0xFF081C15);
+      case ThemePack.solar: return const Color(0xFF200F00);
     }
   }
 

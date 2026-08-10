@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:watersort/ui/core/theme/app_colors.dart';
 import 'package:watersort/ui/providers.dart';
 
@@ -218,6 +219,74 @@ class SettingsView extends ConsumerWidget {
                       ],
                     ),
                   ),
+                  const SizedBox(height: 16),
+                  GestureDetector(
+                    onTap: () async {
+                      final Uri url = Uri.parse('https://github.com/sidhant947/water-sort');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF16161B),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: const Color(0xFF22222B),
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.redAccent.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(
+                              Icons.bug_report_rounded,
+                              color: Colors.redAccent,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'REPORT BUGS / SUGGESTIONS',
+                                  style: TextStyle(
+                                    fontFamily: 'BebasNeue',
+                                    fontSize: 16,
+                                    color: AppColors.headingWhite,
+                                    letterSpacing: 0.8,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Open the GitHub repository to report issues or suggest improvements directly.',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.subtext,
+                                    height: 1.3,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Icon(
+                            Icons.open_in_new_rounded,
+                            color: AppColors.subtext,
+                            size: 18,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 32),
                 ],
               ),
@@ -332,6 +401,56 @@ class SettingsView extends ConsumerWidget {
         name: 'Neon',
         bg: Color(0xFF050505),
         accent: Color(0xFF39FF14),
+      ),
+      ThemePack.ocean: const _ThemeSpec(
+        name: 'Ocean Breeze',
+        bg: Color(0xFF0A192F),
+        accent: Color(0xFF00D2FF),
+      ),
+      ThemePack.volcano: const _ThemeSpec(
+        name: 'Volcanic Ash',
+        bg: Color(0xFF1A0A0A),
+        accent: Color(0xFFFF4500),
+      ),
+      ThemePack.aurora: const _ThemeSpec(
+        name: 'Aurora Borealis',
+        bg: Color(0xFF0B1B1E),
+        accent: Color(0xFF00FFCC),
+      ),
+      ThemePack.lavender: const _ThemeSpec(
+        name: 'Lavender Mist',
+        bg: Color(0xFF15101F),
+        accent: Color(0xFFE0B0FF),
+      ),
+      ThemePack.desert: const _ThemeSpec(
+        name: 'Desert Sand',
+        bg: Color(0xFF221A0F),
+        accent: Color(0xFFE6C229),
+      ),
+      ThemePack.glitch: const _ThemeSpec(
+        name: 'Matrix Glitch',
+        bg: Color(0xFF0D0208),
+        accent: Color(0xFF00FF00),
+      ),
+      ThemePack.sakura: const _ThemeSpec(
+        name: 'Cherry Blossom',
+        bg: Color(0xFF261820),
+        accent: Color(0xFFFFB7C5),
+      ),
+      ThemePack.monochrome: const _ThemeSpec(
+        name: 'Classic Noir',
+        bg: Color(0xFF1A1A1A),
+        accent: Color(0xFFE0E0E0),
+      ),
+      ThemePack.aquamarine: const _ThemeSpec(
+        name: 'Deep Reef',
+        bg: Color(0xFF081C15),
+        accent: Color(0xFF7FFFD4),
+      ),
+      ThemePack.solar: const _ThemeSpec(
+        name: 'Solar Flare',
+        bg: Color(0xFF200F00),
+        accent: Color(0xFFFFCC00),
       ),
     };
   }

@@ -25,7 +25,6 @@ class GameLevel {
 
   bool get hasPossibleMoves {
     if (isComplete) return false;
-    bool hasAnyPhysicalMove = false;
     for (int i = 0; i < tubes.length; i++) {
       final from = tubes[i];
       if (from.isEmpty) continue;
@@ -34,14 +33,11 @@ class GameLevel {
         if (i == j) continue;
         final to = tubes[j];
         if (!to.isFull && to.canReceive(colorToMove)) {
-          hasAnyPhysicalMove = true;
-          break;
+          return true;
         }
       }
-      if (hasAnyPhysicalMove) break;
     }
-    if (!hasAnyPhysicalMove) return false;
-    return _isSolvable(tubes);
+    return false;
   }
 
   bool _isSolvable(List<Tube> initialTubes) {
