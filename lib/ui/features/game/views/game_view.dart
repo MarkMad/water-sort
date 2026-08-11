@@ -93,12 +93,9 @@ class _GameViewState extends ConsumerState<GameView> {
       if (next.isTimeOut && !(prev?.isTimeOut ?? false)) {
         _showTimeOutDialog();
       }
-      if (next.isNoMovesLeft && !(prev?.isNoMovesLeft ?? false)) {
-        _showNoMovesLeftDialog();
-      }
     });
 
-    final isComplete = state.isComplete;
+
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -286,8 +283,7 @@ class _GameViewState extends ConsumerState<GameView> {
                     ),
                     const SizedBox(width: 8),
                     GestureDetector(
-                      onTap: () =>
-                          ref.read(gameViewModelProvider.notifier).resetLevel(),
+                      onTap: _showRestartConfirmationDialog,
                       behavior: HitTestBehavior.opaque,
                       child: const Padding(
                         padding: EdgeInsets.all(4.0),
@@ -569,9 +565,7 @@ class _GameViewState extends ConsumerState<GameView> {
       ),
     );
   }
-
-  void _showNoMovesLeftDialog() {
-    final state = ref.read(gameViewModelProvider);
+  void _showRestartConfirmationDialog() {
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -590,22 +584,22 @@ class _GameViewState extends ConsumerState<GameView> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.amber.withValues(alpha: 0.08),
+                  color: Colors.red.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: Colors.amber.withValues(alpha: 0.3),
+                    color: Colors.red.withValues(alpha: 0.3),
                     width: 1.0,
                   ),
                 ),
                 child: const Icon(
-                  Icons.block_rounded,
-                  color: Colors.amber,
+                  Icons.refresh_rounded,
+                  color: Colors.red,
                   size: 56,
                 ),
               ),
               const SizedBox(height: 20),
               Text(
-                'NO MORE MOVES!',
+                'RESTART LEVEL?',
                 style: TextStyle(
                   fontFamily: 'BebasNeue',
                   fontSize: 28,
@@ -616,7 +610,7 @@ class _GameViewState extends ConsumerState<GameView> {
               ),
               const SizedBox(height: 8),
               Text(
-                'There are no valid moves remaining for this configuration.',
+                'Are you sure you want to restart the current level? Your current progress will be lost.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontFamily: 'BebasNeue',
@@ -630,24 +624,21 @@ class _GameViewState extends ConsumerState<GameView> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  if (state.canUndo) ...[
-                    TangibleButton(
-                      text: 'Undo Last Move',
-                      height: 50,
-                      onPressed: () {
-                        Navigator.pop(context);
-                        ref.read(gameViewModelProvider.notifier).undoMove();
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                  ],
                   TangibleButton(
-                    text: 'Restart Level',
-                    isSecondary: state.canUndo,
+                    text: 'Restart',
                     height: 50,
                     onPressed: () {
                       Navigator.pop(context);
                       ref.read(gameViewModelProvider.notifier).resetLevel();
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  TangibleButton(
+                    text: 'Cancel',
+                    isSecondary: true,
+                    height: 50,
+                    onPressed: () {
+                      Navigator.pop(context);
                     },
                   ),
                 ],
