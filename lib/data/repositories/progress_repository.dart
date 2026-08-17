@@ -88,6 +88,22 @@ class ProgressRepository {
     await _hiveService.setInstantPouringEnabled(enabled);
   }
 
+  bool isHintHelperEnabled() {
+    return _hiveService.isHintHelperEnabled();
+  }
+
+  Future<void> setHintHelperEnabled(bool enabled) async {
+    await _hiveService.setHintHelperEnabled(enabled);
+  }
+
+  bool isSoundEffectsEnabled() {
+    return _hiveService.isSoundEffectsEnabled();
+  }
+
+  Future<void> setSoundEffectsEnabled(bool enabled) async {
+    await _hiveService.setSoundEffectsEnabled(enabled);
+  }
+
   Future<List<UserProfile>> getProfiles() async {
     return _hiveService.getProfiles();
   }

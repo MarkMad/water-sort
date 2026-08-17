@@ -8,6 +8,7 @@ import 'package:watersort/data/repositories/progress_repository.dart';
 import 'package:watersort/domain/models/game_level.dart';
 import 'package:watersort/domain/models/tube.dart';
 import 'package:watersort/domain/use_cases/level_generator.dart';
+import 'package:watersort/domain/use_cases/level_solver.dart';
 
 @immutable
 class MoveSnapshot {
@@ -39,6 +40,10 @@ class GameViewModelState {
     this.isSuperHardModeEnabled = false,
     this.isBlurSolvedTubesEnabled = false,
     this.isInstantPouringEnabled = false,
+    this.isHintHelperEnabled = false,
+    this.isSoundEffectsEnabled = true,
+    this.hintFromIndex,
+    this.hintToIndex,
   });
 
   final GameLevel? level;
@@ -61,6 +66,10 @@ class GameViewModelState {
   final bool isSuperHardModeEnabled;
   final bool isBlurSolvedTubesEnabled;
   final bool isInstantPouringEnabled;
+  final bool isHintHelperEnabled;
+  final bool isSoundEffectsEnabled;
+  final int? hintFromIndex;
+  final int? hintToIndex;
 
   bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut;
 
@@ -86,6 +95,10 @@ class GameViewModelState {
     bool? isSuperHardModeEnabled,
     bool? isBlurSolvedTubesEnabled,
     bool? isInstantPouringEnabled,
+    bool? isHintHelperEnabled,
+    bool? isSoundEffectsEnabled,
+    int? Function()? hintFromIndex,
+    int? Function()? hintToIndex,
   }) {
     return GameViewModelState(
       level: level ?? this.level,
@@ -111,6 +124,12 @@ class GameViewModelState {
       isSuperHardModeEnabled: isSuperHardModeEnabled ?? this.isSuperHardModeEnabled,
       isBlurSolvedTubesEnabled: isBlurSolvedTubesEnabled ?? this.isBlurSolvedTubesEnabled,
       isInstantPouringEnabled: isInstantPouringEnabled ?? this.isInstantPouringEnabled,
+      isHintHelperEnabled: isHintHelperEnabled ?? this.isHintHelperEnabled,
+      isSoundEffectsEnabled: isSoundEffectsEnabled ?? this.isSoundEffectsEnabled,
+      hintFromIndex:
+          hintFromIndex != null ? hintFromIndex() : this.hintFromIndex,
+      hintToIndex:
+          hintToIndex != null ? hintToIndex() : this.hintToIndex,
     );
   }
 }
@@ -204,6 +223,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         final isSuperHard = _progressRepository.isSuperHardModeEnabled();
         final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
         final isInstantPouring = _progressRepository.isInstantPouringEnabled();
+        final isHintHelper = _progressRepository.isHintHelperEnabled();
+        final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
 
         state = GameViewModelState(
           level: level,
@@ -212,6 +233,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isSuperHardModeEnabled: isSuperHard,
           isBlurSolvedTubesEnabled: isBlurSolved,
           isInstantPouringEnabled: isInstantPouring,
+          isHintHelperEnabled: isHintHelper,
+          isSoundEffectsEnabled: isSoundEffects,
         );
 
         if (savedMap['timeLeft'] != null) {
@@ -224,12 +247,16 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       final isSuperHard = _progressRepository.isSuperHardModeEnabled();
       final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
       final isInstantPouring = _progressRepository.isInstantPouringEnabled();
+      final isHintHelper = _progressRepository.isHintHelperEnabled();
+      final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
       debugPrint('LOAD LEVEL: isSuperHard = $isSuperHard');
       state = GameViewModelState(
         level: level,
         isSuperHardModeEnabled: isSuperHard,
         isBlurSolvedTubesEnabled: isBlurSolved,
         isInstantPouringEnabled: isInstantPouring,
+        isHintHelperEnabled: isHintHelper,
+        isSoundEffectsEnabled: isSoundEffects,
       );
 
       _progressRepository.clearActiveLevelState();
@@ -253,6 +280,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     final isSuperHard = _progressRepository.isSuperHardModeEnabled();
     final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
     final isInstantPouring = _progressRepository.isInstantPouringEnabled();
+    final isHintHelper = _progressRepository.isHintHelperEnabled();
+    final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
     state = GameViewModelState(
       isLoading: true,
       isRandomMode: true,
@@ -263,6 +292,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       isSuperHardModeEnabled: isSuperHard,
       isBlurSolvedTubesEnabled: isBlurSolved,
       isInstantPouringEnabled: isInstantPouring,
+      isHintHelperEnabled: isHintHelper,
+      isSoundEffectsEnabled: isSoundEffects,
     );
 
     try {
@@ -316,6 +347,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isSuperHardModeEnabled: isSuperHard,
           isBlurSolvedTubesEnabled: isBlurSolved,
           isInstantPouringEnabled: isInstantPouring,
+          isHintHelperEnabled: isHintHelper,
         );
 
         if (savedMap['timeLeft'] != null) {
@@ -400,6 +432,13 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
   void selectTube(int index) {
     if (state.isComplete || state.isTimeOut || state.level == null || state.pouringFromIndex != null) return;
+
+    if (state.hintFromIndex != null || state.hintToIndex != null) {
+      state = state.copyWith(
+        hintFromIndex: () => null,
+        hintToIndex: () => null,
+      );
+    }
 
     if (state.selectedTubeIndex == null) {
       if (!state.level!.tubes[index].isEmpty) {
@@ -559,6 +598,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       selectedTubeIndex: () => null,
       isComplete: false,
       moveHistory: newHistory,
+      hintFromIndex: () => null,
+      hintToIndex: () => null,
     );
 
     _saveCurrentState();
@@ -593,6 +634,23 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       }).toList(),
     };
     _progressRepository.saveActiveLevelState(stateMap);
+  }
+
+  bool showHint() {
+    if (state.level == null || state.isComplete || state.isTimeOut) return false;
+    final solver = LevelSolver();
+    final solution = solver.solve(state.level!.tubes);
+    if (solution != null && solution.isNotEmpty) {
+      HapticFeedback.lightImpact();
+      final firstMove = solution.first;
+      state = state.copyWith(
+        selectedTubeIndex: () => null,
+        hintFromIndex: () => firstMove.fromIndex,
+        hintToIndex: () => firstMove.toIndex,
+      );
+      return true;
+    }
+    return false;
   }
 
   @override

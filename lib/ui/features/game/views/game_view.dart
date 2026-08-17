@@ -275,13 +275,6 @@ class _GameViewState extends ConsumerState<GameView> {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 1.0,
-                      height: 16,
-                      color: const Color(0xFF3E3E4D),
-                    ),
-                    const SizedBox(width: 8),
                     GestureDetector(
                       onTap: _showRestartConfirmationDialog,
                       behavior: HitTestBehavior.opaque,
@@ -328,6 +321,34 @@ class _GameViewState extends ConsumerState<GameView> {
           ],
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      floatingActionButton: state.isHintHelperEnabled
+          ? FloatingActionButton(
+              onPressed: () {
+                final success = ref.read(gameViewModelProvider.notifier).showHint();
+                if (!success) {
+                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No solution possible from current state. Try undoing some moves!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              backgroundColor: const Color(0xFF1E1E24),
+              foregroundColor: AppColors.accent,
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: BorderSide(
+                  color: AppColors.accent.withValues(alpha: 0.3),
+                  width: 1.2,
+                ),
+              ),
+              child: const Icon(Icons.lightbulb_rounded, size: 24),
+            )
+          : null,
     );
   }
 

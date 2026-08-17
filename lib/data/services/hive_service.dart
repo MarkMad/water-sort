@@ -73,9 +73,6 @@ class HiveService {
     }
   }
 
-  static const String _timerEnabledKey = 'timer_enabled';
-  static const String _superHardModeKey = 'super_hard_mode';
-
   Future<String?> getActiveProfileId() async {
     return _settingsBox.get(_activeProfileKey) as String?;
   }
@@ -138,6 +135,26 @@ class HiveService {
   Future<void> setInstantPouringEnabled(bool enabled) async {
     final profileId = _getActiveProfileIdSync();
     await _settingsBox.put('${profileId}_instant_pouring', enabled);
+  }
+
+  bool isHintHelperEnabled() {
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_hint_helper', defaultValue: false) as bool;
+  }
+
+  Future<void> setHintHelperEnabled(bool enabled) async {
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_hint_helper', enabled);
+  }
+
+  bool isSoundEffectsEnabled() {
+    final profileId = _getActiveProfileIdSync();
+    return _settingsBox.get('${profileId}_sound_effects', defaultValue: true) as bool;
+  }
+
+  Future<void> setSoundEffectsEnabled(bool enabled) async {
+    final profileId = _getActiveProfileIdSync();
+    await _settingsBox.put('${profileId}_sound_effects', enabled);
   }
 
   Map<dynamic, dynamic>? getSavedLevelState() {

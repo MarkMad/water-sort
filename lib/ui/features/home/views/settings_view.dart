@@ -84,9 +84,24 @@ class SettingsView extends ConsumerWidget {
                   _buildSettingTile(
                     icon: Icons.motion_photos_off_rounded,
                     title: 'TURN OFF ANIMATIONS',
-                    description: 'Disable all water pouring, waves, bubbles, and visual effects for 100% static gameplay.',
+                    description: 'Disable all water pouring, animations, sound effects, waves, and visual effects for instant gameplay.',
                     value: state.isInstantPouringEnabled,
                     onTap: () => ref.read(homeViewModelProvider.notifier).toggleInstantPouring(),
+                  ),
+                  _buildSettingTile(
+                    icon: state.isSoundEffectsEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                    title: 'SOUND EFFECTS',
+                    description: 'Play realistic liquid pouring sound effects during moves. Automatically disabled when animations are turned off.',
+                    value: state.isSoundEffectsEnabled,
+                    isEnabled: !state.isInstantPouringEnabled,
+                    onTap: () => ref.read(homeViewModelProvider.notifier).toggleSoundEffects(),
+                  ),
+                  _buildSettingTile(
+                    icon: Icons.lightbulb_rounded,
+                    title: 'HINT HELPER',
+                    description: 'Show a hint button during gameplay to highlight the next optimal move.',
+                    value: state.isHintHelperEnabled,
+                    onTap: () => ref.read(homeViewModelProvider.notifier).toggleHintHelper(),
                   ),
                   const SizedBox(height: 16),
                   Container(
@@ -107,7 +122,7 @@ class SettingsView extends ConsumerWidget {
                             Container(
                               padding: const EdgeInsets.all(10),
                               decoration: BoxDecoration(
-                                color: AppColors.accent.withOpacity(0.1),
+                                color: AppColors.accent.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
@@ -122,7 +137,7 @@ class SettingsView extends ConsumerWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'THEME PACKS',
+                                    'THEME PALETTES',
                                     style: TextStyle(
                                       fontFamily: 'BebasNeue',
                                       fontSize: 16,
@@ -132,7 +147,7 @@ class SettingsView extends ConsumerWidget {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Choose a theme pack to change the UI background, accents, and tube water colors.',
+                                    'Choose a color palette to customize backgrounds, accents, and tube liquid colors.',
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: AppColors.subtext,
@@ -145,76 +160,57 @@ class SettingsView extends ConsumerWidget {
                           ],
                         ),
                         const SizedBox(height: 20),
-                        GridView.builder(
-                          physics: const NeverScrollableScrollPhysics(),
-                          shrinkWrap: true,
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: 2.2,
-                          ),
-                          itemCount: ThemePack.values.length,
-                          itemBuilder: (context, index) {
-                            final theme = ThemePack.values[index];
-                            final spec = themeSpecs[theme]!;
-                            final isSelected = state.activeTheme == theme;
+                        Center(
+                          child: Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            alignment: WrapAlignment.center,
+                            children: ThemePack.values.map((theme) {
+                              final spec = themeSpecs[theme]!;
+                              final isSelected = state.activeTheme == theme;
 
-                            return GestureDetector(
-                              onTap: () => ref.read(homeViewModelProvider.notifier).setThemePack(theme),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? spec.accent.withValues(alpha: 0.08)
-                                      : const Color(0xFF1E1E26),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: isSelected ? spec.accent : const Color(0xFF2C2C35),
-                                    width: isSelected ? 2.0 : 1.5,
+                              return GestureDetector(
+                                onTap: () => ref.read(homeViewModelProvider.notifier).setThemePack(theme),
+                                child: AnimatedContainer(
+                                  duration: const Duration(milliseconds: 200),
+                                  width: 50,
+                                  height: 50,
+                                  decoration: BoxDecoration(
+                                    color: spec.bg,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected ? spec.accent : const Color(0xFF33333E),
+                                      width: isSelected ? 2.5 : 1.5,
+                                    ),
+                                    boxShadow: [
+                                      if (isSelected)
+                                        BoxShadow(
+                                          color: spec.accent.withValues(alpha: 0.45),
+                                          blurRadius: 10,
+                                          spreadRadius: 1.5,
+                                        ),
+                                    ],
                                   ),
-                                  boxShadow: [
-                                    if (isSelected)
-                                      BoxShadow(
-                                        color: spec.accent.withValues(alpha: 0.15),
-                                        blurRadius: 8,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                  ],
+                                  child: Center(
+                                    child: isSelected
+                                        ? Icon(
+                                            Icons.check_rounded,
+                                            color: spec.accent,
+                                            size: 24,
+                                          )
+                                        : Container(
+                                            width: 18,
+                                            height: 18,
+                                            decoration: BoxDecoration(
+                                              color: spec.accent,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                  ),
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        spec.name.toUpperCase(),
-                                        style: TextStyle(
-                                          fontFamily: 'BebasNeue',
-                                          fontSize: 16,
-                                          color: isSelected ? AppColors.headingWhite : AppColors.subtext,
-                                          letterSpacing: 0.8,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                    Container(
-                                      width: 22,
-                                      height: 22,
-                                      decoration: BoxDecoration(
-                                        color: spec.bg,
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: spec.accent,
-                                          width: 2.5,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                              );
+                            }).toList(),
+                          ),
                         ),
                       ],
                     ),
@@ -303,64 +299,69 @@ class SettingsView extends ConsumerWidget {
     required String description,
     required bool value,
     required VoidCallback onTap,
+    bool isEnabled = true,
   }) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF16161B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0xFF22222B),
-          width: 1.0,
+    return AnimatedOpacity(
+      duration: const Duration(milliseconds: 200),
+      opacity: isEnabled ? 1.0 : 0.38,
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF16161B),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: const Color(0xFF22222B),
+            width: 1.0,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: value ? AppColors.accent.withValues(alpha: 0.1) : const Color(0xFF202026),
-              borderRadius: BorderRadius.circular(12),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: (value && isEnabled) ? AppColors.accent.withValues(alpha: 0.1) : const Color(0xFF202026),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: (value && isEnabled) ? AppColors.accent : AppColors.subtext,
+                size: 20,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: value ? AppColors.accent : AppColors.subtext,
-              size: 20,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontFamily: 'BebasNeue',
-                    fontSize: 16,
-                    color: AppColors.headingWhite,
-                    letterSpacing: 0.8,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'BebasNeue',
+                      fontSize: 16,
+                      color: AppColors.headingWhite,
+                      letterSpacing: 0.8,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AppColors.subtext,
-                    height: 1.3,
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.subtext,
+                      height: 1.3,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 16),
-          _PremiumSwitch(
-            value: value,
-            onTap: onTap,
-          ),
-        ],
+            const SizedBox(width: 16),
+            _PremiumSwitch(
+              value: isEnabled ? value : false,
+              onTap: isEnabled ? onTap : () {},
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -368,87 +369,70 @@ class SettingsView extends ConsumerWidget {
   Map<ThemePack, _ThemeSpec> _getThemeSpecs() {
     return {
       ThemePack.midnight: const _ThemeSpec(
-        name: 'Midnight',
         bg: Color(0xFF121212),
         accent: Color(0xFF86EF4D),
       ),
       ThemePack.cyberpunk: const _ThemeSpec(
-        name: 'Cyberpunk',
         bg: Color(0xFF0F0B1E),
         accent: Color(0xFFFF007F),
       ),
       ThemePack.forest: const _ThemeSpec(
-        name: 'Forest',
         bg: Color(0xFF0D140F),
         accent: Color(0xFF50C878),
       ),
       ThemePack.space: const _ThemeSpec(
-        name: 'Space',
         bg: Color(0xFF090A15),
         accent: Color(0xFFBD93F9),
       ),
       ThemePack.retro: const _ThemeSpec(
-        name: 'Retro',
         bg: Color(0xFF17130E),
         accent: Color(0xFFFFB86C),
       ),
       ThemePack.sunset: const _ThemeSpec(
-        name: 'Sunset',
         bg: Color(0xFF1E0E25),
         accent: Color(0xFFF9844A),
       ),
       ThemePack.neon: const _ThemeSpec(
-        name: 'Neon',
         bg: Color(0xFF050505),
         accent: Color(0xFF39FF14),
       ),
       ThemePack.ocean: const _ThemeSpec(
-        name: 'Ocean Breeze',
         bg: Color(0xFF0A192F),
         accent: Color(0xFF00D2FF),
       ),
       ThemePack.volcano: const _ThemeSpec(
-        name: 'Volcanic Ash',
         bg: Color(0xFF1A0A0A),
         accent: Color(0xFFFF4500),
       ),
       ThemePack.aurora: const _ThemeSpec(
-        name: 'Aurora Borealis',
         bg: Color(0xFF0B1B1E),
         accent: Color(0xFF00FFCC),
       ),
       ThemePack.lavender: const _ThemeSpec(
-        name: 'Lavender Mist',
         bg: Color(0xFF15101F),
         accent: Color(0xFFE0B0FF),
       ),
       ThemePack.desert: const _ThemeSpec(
-        name: 'Desert Sand',
         bg: Color(0xFF221A0F),
         accent: Color(0xFFE6C229),
       ),
       ThemePack.glitch: const _ThemeSpec(
-        name: 'Matrix Glitch',
         bg: Color(0xFF0D0208),
         accent: Color(0xFF00FF00),
       ),
       ThemePack.sakura: const _ThemeSpec(
-        name: 'Cherry Blossom',
         bg: Color(0xFF261820),
         accent: Color(0xFFFFB7C5),
       ),
       ThemePack.monochrome: const _ThemeSpec(
-        name: 'Classic Noir',
         bg: Color(0xFF1A1A1A),
         accent: Color(0xFFE0E0E0),
       ),
       ThemePack.aquamarine: const _ThemeSpec(
-        name: 'Deep Reef',
         bg: Color(0xFF081C15),
         accent: Color(0xFF7FFFD4),
       ),
       ThemePack.solar: const _ThemeSpec(
-        name: 'Solar Flare',
         bg: Color(0xFF200F00),
         accent: Color(0xFFFFCC00),
       ),
@@ -457,11 +441,9 @@ class SettingsView extends ConsumerWidget {
 }
 
 class _ThemeSpec {
-  final String name;
   final Color bg;
   final Color accent;
   const _ThemeSpec({
-    required this.name,
     required this.bg,
     required this.accent,
   });

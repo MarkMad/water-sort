@@ -7,8 +7,8 @@ import 'package:watersort/ui/features/game/views/game_view.dart';
 import 'package:watersort/ui/features/how_to_play/views/how_to_play_view.dart';
 import 'package:watersort/ui/features/level_select/views/level_select_view.dart';
 import 'package:watersort/ui/providers.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:watersort/domain/models/user_profile.dart';
-import 'package:watersort/ui/features/support/views/support_view.dart';
 import 'package:watersort/ui/features/home/views/settings_view.dart';
 
 class HomeView extends ConsumerStatefulWidget {
@@ -84,45 +84,26 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   else
                     const SizedBox.shrink(),
                   GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SupportView(),
-                        ),
-                      );
+                    onTap: () async {
+                      final Uri url = Uri.parse('https://ko-fi.com/sidhant947');
+                      if (await canLaunchUrl(url)) {
+                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      }
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: const Color(0xFF1C1C22),
-                        borderRadius: BorderRadius.circular(20),
+                        shape: BoxShape.circle,
                         border: Border.all(
                           color: const Color(0xFF222222),
                           width: 1.0,
                         ),
                       ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.favorite_rounded,
-                            size: 16,
-                            color: Colors.redAccent,
-                          ),
-                          SizedBox(width: 6),
-                          Text(
-                            'Support',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
+                      child: const Icon(
+                        Icons.favorite_rounded,
+                        size: 18,
+                        color: Colors.redAccent,
                       ),
                     ),
                   ),

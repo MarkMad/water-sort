@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flame/components.dart';
 import 'package:flame/game.dart';
 import 'package:flame/events.dart';
+import 'package:flame_audio/flame_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:watersort/domain/models/tube.dart';
 import 'package:watersort/ui/features/game/view_models/game_view_model.dart';
@@ -25,12 +26,19 @@ class WaterSortGame extends FlameGame with TapCallbacks {
   final List<TapRipple> _ripples = [];
 
   void updateState(GameViewModelState newState) {
-    if (_state.level != newState.level ||
+    final bool levelChanged = _state.level != newState.level || _tubes.length != (newState.level?.tubes.length ?? 0);
+    if (levelChanged ||
         _state.selectedTubeIndex != newState.selectedTubeIndex ||
+        _state.hintFromIndex != newState.hintFromIndex ||
+        _state.hintToIndex != newState.hintToIndex ||
         _state.isSuperHardModeEnabled != newState.isSuperHardModeEnabled ||
         _state.isBlurSolvedTubesEnabled != newState.isBlurSolvedTubesEnabled ||
-        _state.isInstantPouringEnabled != newState.isInstantPouringEnabled) {
+        _state.isInstantPouringEnabled != newState.isInstantPouringEnabled ||
+        _state.isSoundEffectsEnabled != newState.isSoundEffectsEnabled) {
       _state = newState;
+      if (levelChanged) {
+        _layoutTubes();
+      }
       _syncTubes();
     }
 
@@ -59,6 +67,8 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         _tubes[i].isSuperHardModeEnabled = _state.isSuperHardModeEnabled;
         _tubes[i].isBlurSolvedTubesEnabled = _state.isBlurSolvedTubesEnabled;
         _tubes[i].isInstantPouringEnabled = _state.isInstantPouringEnabled;
+        _tubes[i].isHintSource = _state.hintFromIndex == i;
+        _tubes[i].isHintTarget = _state.hintToIndex == i;
       }
     }
   }
@@ -94,25 +104,28 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         color: colorToMove,
         pourCount: pourCount,
       );
+      if (!_state.isInstantPouringEnabled && _state.isSoundEffectsEnabled) {
+        try {
+          FlameAudio.play('pouring.mp3');
+        } catch (_) {}
+      }
     }
   }
 
-  void _spawnVictoryBurst(TubeComponent comp, Color color) {
+  void _spawnVictoryBurst(TubeComponent tubeComp, Color color) {
     final random = math.Random();
-    final Vector2 spawnPos = comp.position + Vector2(comp.size.x / 2, 0.0);
+    final center = tubeComp.position + tubeComp.size / 2;
 
     for (int i = 0; i < 35; i++) {
-      final double angle = -math.pi / 2 + (random.nextDouble() - 0.5) * 1.2;
-      final double speed = 120.0 + random.nextDouble() * 180.0;
-      final double maxLife = 0.8 + random.nextDouble() * 0.6;
-
-      final velocity = Vector2(math.cos(angle) * speed, math.sin(angle) * speed);
+      final double speed = 80.0 + random.nextDouble() * 220.0;
+      final double angle = -math.pi / 2 + (random.nextDouble() - 0.5) * math.pi * 1.5;
+      final double maxLife = 0.6 + random.nextDouble() * 0.6;
 
       _particles.add(
         GameParticle(
-          position: spawnPos.clone(),
-          velocity: velocity,
-          color: random.nextBool() ? color : const Color(0xFFFFD700),
+          position: center.clone(),
+          velocity: Vector2(math.cos(angle) * speed, math.sin(angle) * speed),
+          color: color,
           size: 4.0 + random.nextDouble() * 4.0,
           life: 0.0,
           maxLife: maxLife,
@@ -122,6 +135,14 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         ),
       );
     }
+  }
+
+  @override
+  Future<void> onLoad() async {
+    super.onLoad();
+    try {
+      await FlameAudio.audioCache.load('pouring.mp3');
+    } catch (_) {}
   }
 
   @override
@@ -139,28 +160,90 @@ class WaterSortGame extends FlameGame with TapCallbacks {
 
     final double containerWidth = size.x;
     final double containerHeight = size.y;
+    if (containerWidth <= 0 || containerHeight <= 0) return;
 
     final int tubeCount = level.tubes.length;
-    final int maxPerRow = tubeCount <= 5 ? tubeCount : (tubeCount <= 8 ? 4 : 5);
-    final int rows = (tubeCount / maxPerRow).ceil();
-    final int cols = (tubeCount / rows).ceil();
+    if (tubeCount == 0) return;
 
-    const double spacing = 8.0;
-    const double aspectRatio = 3.2;
+    const double minMarginX = 10.0;
+    const double minMarginY = 16.0;
 
-    final double maxTubeWidth = (containerWidth - (cols + 1) * spacing) / cols;
-    final double maxTubeHeight = (containerHeight - rows * spacing) / rows;
+    final int capacity = level.tubes.isNotEmpty ? level.tubes.first.capacity : 4;
+    final double targetAspectRatio = (capacity * 0.62 + 0.30).clamp(2.5, 3.8);
+    final double minAspectRatio = (capacity * 0.48 + 0.20).clamp(2.0, 2.9);
 
-    double tubeWidth = maxTubeWidth.clamp(0.0, 80.0);
-    double tubeHeight = tubeWidth * aspectRatio;
-
-    if (tubeHeight > maxTubeHeight) {
-      tubeHeight = maxTubeHeight.clamp(0.0, 256.0);
-      tubeWidth = tubeHeight / aspectRatio;
+    final List<int> candidateRows = [];
+    if (tubeCount <= 4) {
+      candidateRows.add(1);
+    } else if (tubeCount <= 8) {
+      candidateRows.add(2);
+    } else if (tubeCount <= 12) {
+      candidateRows.addAll([2, 3]);
+    } else if (tubeCount <= 16) {
+      candidateRows.addAll([3, 4]);
+    } else {
+      candidateRows.addAll([4, 5]);
     }
 
-    final double totalGridHeight = rows * tubeHeight + (rows - 1) * spacing;
-    final double startY = (containerHeight - totalGridHeight) / 2;
+    List<int> bestRowCounts = [tubeCount];
+    double bestTubeWidth = 40.0;
+    double bestTubeHeight = 120.0;
+    double bestSpacingX = 8.0;
+    double bestSpacingY = 12.0;
+    double bestStartY = 0.0;
+    double bestScore = -1.0;
+
+    for (final r in candidateRows) {
+      final base = tubeCount ~/ r;
+      final rem = tubeCount % r;
+      final rowCounts = List.generate(r, (i) => base + (i < rem ? 1 : 0));
+      final maxCols = rowCounts.first;
+      if (maxCols == 0) continue;
+
+      final availW = containerWidth - (minMarginX * 2);
+      final availH = containerHeight - (minMarginY * 2);
+
+      final double minSpacingX = (maxCols >= 5 || containerWidth < 360) ? 6.0 : 8.0;
+      final double maxSpacingX = maxCols <= 3 ? 24.0 : 18.0;
+      final double spacingY = (r >= 4 || containerHeight < 600) ? 8.0 : 12.0;
+
+      final maxWFromWidth = (availW - (maxCols - 1) * minSpacingX) / maxCols;
+      final maxHFromHeight = (availH - (r - 1) * spacingY) / r;
+
+      for (double ar = targetAspectRatio; ar >= minAspectRatio; ar -= 0.05) {
+        double w = math.min(maxWFromWidth, maxHFromHeight / ar);
+        w = w.clamp(18.0, 92.0);
+        double h = (w * ar).clamp(18.0 * ar, maxHFromHeight);
+        w = h / ar;
+
+        final totalGridW = maxCols * w + (maxCols - 1) * minSpacingX;
+        final totalGridH = r * h + (r - 1) * spacingY;
+
+        if (totalGridW > availW + 0.5 || totalGridH > availH + 0.5) continue;
+
+        double actualSpacingX = minSpacingX;
+        if (maxCols > 1) {
+          final remainingWidth = availW - (maxCols * w);
+          actualSpacingX = (remainingWidth / (maxCols - 1)).clamp(minSpacingX, maxSpacingX);
+        }
+
+        final widestRowW = maxCols * w + (maxCols - 1) * actualSpacingX;
+        final totalH = r * h + (r - 1) * spacingY;
+        final widthUtil = widestRowW / containerWidth;
+
+        final double score = (w * h) * (0.4 + widthUtil * 0.6);
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestRowCounts = rowCounts;
+          bestTubeWidth = w;
+          bestTubeHeight = h;
+          bestSpacingX = actualSpacingX;
+          bestSpacingY = spacingY;
+          bestStartY = (containerHeight - totalH) / 2;
+        }
+      }
+    }
 
     if (_tubes.length != tubeCount) {
       removeAll(_tubes);
@@ -174,29 +257,30 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         )
           ..isSuperHardModeEnabled = _state.isSuperHardModeEnabled
           ..isBlurSolvedTubesEnabled = _state.isBlurSolvedTubesEnabled
-          ..isInstantPouringEnabled = _state.isInstantPouringEnabled;
+          ..isInstantPouringEnabled = _state.isInstantPouringEnabled
+          ..isHintSource = _state.hintFromIndex == i
+          ..isHintTarget = _state.hintToIndex == i;
         _tubes.add(comp);
         add(comp);
       }
     }
 
-    for (int i = 0; i < tubeCount; i++) {
-      final r = i ~/ maxPerRow;
-      final c = i % maxPerRow;
-
-      final rowStartCol = r * maxPerRow;
-      final rowEndCol = math.min((r + 1) * maxPerRow, tubeCount);
-      final colsInThisRow = rowEndCol - rowStartCol;
-      final double rowWidth = colsInThisRow * tubeWidth + (colsInThisRow - 1) * spacing;
+    int currentTube = 0;
+    for (int r = 0; r < bestRowCounts.length; r++) {
+      final countInRow = bestRowCounts[r];
+      final double rowWidth = countInRow * bestTubeWidth + (countInRow - 1) * bestSpacingX;
       final double rowStartX = (containerWidth - rowWidth) / 2;
+      final double py = bestStartY + r * (bestTubeHeight + bestSpacingY);
 
-      final double px = rowStartX + c * (tubeWidth + spacing);
-      final double py = startY + r * (tubeHeight + spacing);
-
-      _tubes[i].size = Vector2(tubeWidth, tubeHeight);
-      _tubes[i].originalPosition = Vector2(px, py);
-      _tubes[i].position = _tubes[i].originalPosition;
-      _tubes[i].angle = 0;
+      for (int c = 0; c < countInRow; c++) {
+        if (currentTube >= tubeCount) break;
+        final double px = rowStartX + c * (bestTubeWidth + bestSpacingX);
+        _tubes[currentTube].size = Vector2(bestTubeWidth, bestTubeHeight);
+        _tubes[currentTube].originalPosition = Vector2(px, py);
+        _tubes[currentTube].position = _tubes[currentTube].originalPosition;
+        _tubes[currentTube].angle = 0;
+        currentTube++;
+      }
     }
   }
 
@@ -360,6 +444,8 @@ class TubeComponent extends PositionComponent {
   bool isSuperHardModeEnabled = false;
   bool isBlurSolvedTubesEnabled = false;
   bool isInstantPouringEnabled = false;
+  bool isHintSource = false;
+  bool isHintTarget = false;
 
   Vector2 originalPosition = Vector2.zero();
   double time = 0.0;
@@ -404,6 +490,8 @@ class TubeComponent extends PositionComponent {
 
     if (isSelected) {
       position.y = originalPosition.y - 18 + 3.0 * math.sin(time * 6.0);
+    } else if (isHintSource) {
+      position.y = originalPosition.y - 14 + 2.5 * math.sin(time * 6.0);
     } else if (position.y != originalPosition.y) {
       position.y = originalPosition.y;
     }
@@ -473,20 +561,36 @@ class TubeComponent extends PositionComponent {
 
     canvas.restore();
 
-    final glowBorderWidth = isSelected ? 2.8 : borderWidth;
-    final borderPaint = Paint()
-      ..color = isSelected
-          ? (isInstantPouringEnabled
-              ? const Color(0xFF00FFCC)
-              : Color.fromARGB(
-                  255,
-                  (128 + 127 * math.sin(time * 5.0)).round(),
-                  255,
-                  (200 + 55 * math.sin(time * 5.0)).round(),
-                ))
-          : const Color(0xFF2E2E38)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = glowBorderWidth;
+    final glowBorderWidth = isSelected || isHintSource || isHintTarget ? 2.8 : borderWidth;
+    Paint borderPaint;
+    if (isSelected) {
+      borderPaint = Paint()
+        ..color = isInstantPouringEnabled
+            ? const Color(0xFF00FFCC)
+            : Color.fromARGB(
+                255,
+                (128 + 127 * math.sin(time * 5.0)).round(),
+                255,
+                (200 + 55 * math.sin(time * 5.0)).round(),
+              )
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = glowBorderWidth;
+    } else if (isHintSource) {
+      borderPaint = Paint()
+        ..color = const Color(0xFFFFB300)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = glowBorderWidth;
+    } else if (isHintTarget) {
+      borderPaint = Paint()
+        ..color = const Color(0xFF4CAF50)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = glowBorderWidth;
+    } else {
+      borderPaint = Paint()
+        ..color = const Color(0xFF2E2E38)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = glowBorderWidth;
+    }
 
     if (isSelected) {
       final glowPaint = Paint()
@@ -494,6 +598,15 @@ class TubeComponent extends PositionComponent {
             alpha: isInstantPouringEnabled
                 ? 0.35
                 : 0.35 + 0.15 * math.sin(time * 5.0))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = glowBorderWidth + 4.0
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
+      canvas.drawRRect(outerRRect, glowPaint);
+    } else if (isHintSource || isHintTarget) {
+      final hintColor = isHintSource ? const Color(0xFFFFB300) : const Color(0xFF4CAF50);
+      final glowPaint = Paint()
+        ..color = hintColor.withValues(
+            alpha: 0.35 + 0.15 * math.sin(time * 5.0))
         ..style = PaintingStyle.stroke
         ..strokeWidth = glowBorderWidth + 4.0
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5.0);
@@ -514,9 +627,15 @@ class TubeComponent extends PositionComponent {
     );
 
     final rimBorderPaint = Paint()
-      ..color = isSelected ? const Color(0xFF00FFCC) : const Color(0xFF383845)
+      ..color = isSelected
+          ? const Color(0xFF00FFCC)
+          : isHintSource
+              ? const Color(0xFFFFB300)
+              : isHintTarget
+                  ? const Color(0xFF4CAF50)
+                  : const Color(0xFF383845)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.0;
+      ..strokeWidth = isSelected || isHintSource || isHintTarget ? 1.5 : 1.0;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTRB(-2, -2.5, size.x + 2, 2.5),
@@ -524,6 +643,30 @@ class TubeComponent extends PositionComponent {
       ),
       rimBorderPaint,
     );
+
+    if (isHintSource) {
+      final pulse = math.sin(time * 6.0);
+      final arrowPaint = Paint()
+        ..color = const Color(0xFFFFB300)
+        ..style = PaintingStyle.fill;
+      final arrowPath = Path()
+        ..moveTo(size.x / 2, -6.0 + pulse * 2.0)
+        ..lineTo(size.x / 2 - 5.5, -14.0 + pulse * 2.0)
+        ..lineTo(size.x / 2 + 5.5, -14.0 + pulse * 2.0)
+        ..close();
+      canvas.drawPath(arrowPath, arrowPaint);
+    } else if (isHintTarget) {
+      final pulse = math.sin(time * 6.0);
+      final arrowPaint = Paint()
+        ..color = const Color(0xFF4CAF50)
+        ..style = PaintingStyle.fill;
+      final arrowPath = Path()
+        ..moveTo(size.x / 2, -6.0 - pulse * 2.0)
+        ..lineTo(size.x / 2 - 5.5, -14.0 - pulse * 2.0)
+        ..lineTo(size.x / 2 + 5.5, -14.0 - pulse * 2.0)
+        ..close();
+      canvas.drawPath(arrowPath, arrowPaint);
+    }
   }
 
   void _renderLiquid(Canvas canvas) {
@@ -636,17 +779,13 @@ class TubeComponent extends PositionComponent {
     final double segmentHeight = (size.y - 12) / tube.capacity;
 
     int totalIcons = tube.colors.length;
-    if (isAnimatingTarget) {
-      totalIcons = tube.colors.length + animatingPourCount;
+    if (isAnimatingSource) {
+      totalIcons = math.max(0, tube.colors.length - animatingPourCount);
     }
 
     final List<Color> visibleColors = [];
     for (int j = 0; j < totalIcons; j++) {
-      if (j < tube.colors.length) {
-        visibleColors.add(tube.colors[j]);
-      } else {
-        visibleColors.add(animatingColor ?? Colors.transparent);
-      }
+      visibleColors.add(tube.colors[j]);
     }
 
     for (int i = 0; i < totalIcons; i++) {
@@ -669,21 +808,7 @@ class TubeComponent extends PositionComponent {
 
       if (isWhite) continue;
 
-      Color color;
-      double opacity = 1.0;
-
-      if (i < tube.colors.length) {
-        color = tube.colors[i];
-        if (isAnimatingSource && i >= tube.colors.length - animatingPourCount) {
-          opacity = 1.0 - animationProgress;
-        }
-      } else {
-        color = animatingColor ?? Colors.transparent;
-        opacity = animationProgress;
-      }
-
-      if (opacity <= 0.0) continue;
-
+      final color = tube.colors[i];
       final double bottomY = size.y - (i * segmentHeight);
       final double centerY = bottomY - segmentHeight / 2;
 
@@ -693,7 +818,7 @@ class TubeComponent extends PositionComponent {
 
       final maxDiameter = math.min(size.x * 0.85, segmentHeight * 0.85);
       final bgPaint = Paint()
-        ..color = Colors.white.withValues(alpha: 0.18 * opacity)
+        ..color = Colors.white.withValues(alpha: 0.18)
         ..style = PaintingStyle.fill;
       
       canvas.drawCircle(Offset(size.x / 2, centerY), maxDiameter / 2, bgPaint);
@@ -706,7 +831,7 @@ class TubeComponent extends PositionComponent {
           style: TextStyle(
             fontSize: iconSize,
             fontFamily: fontFamily,
-            color: Colors.white.withValues(alpha: 0.85 * opacity),
+            color: Colors.white.withValues(alpha: 0.85),
           ),
         ),
       );
@@ -915,7 +1040,7 @@ class ActivePourAnimation {
   final int pourCount;
 
   double elapsed = 0.0;
-  final double duration = 0.25;
+  final double duration = 0.65;
 
   void reset() {
     fromComponent.isAnimatingSource = false;
