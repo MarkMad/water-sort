@@ -94,12 +94,13 @@ class HiveService {
   }
 
   String _getActiveProfileIdSync() {
-    return (_settingsBox.get(_activeProfileKey) as String?) ?? 'default_profile';
+    return _settingsBox.get(_activeProfileKey)?.toString() ?? 'default_profile';
   }
 
   bool isTimerEnabled() {
     final profileId = _getActiveProfileIdSync();
-    return _settingsBox.get('${profileId}_timer_enabled', defaultValue: true) as bool;
+    final val = _settingsBox.get('${profileId}_timer_enabled');
+    return val == null ? true : val == true;
   }
 
   Future<void> setTimerEnabled(bool enabled) async {
@@ -109,7 +110,8 @@ class HiveService {
 
   bool isSuperHardModeEnabled() {
     final profileId = _getActiveProfileIdSync();
-    return _settingsBox.get('${profileId}_super_hard_mode', defaultValue: false) as bool;
+    final val = _settingsBox.get('${profileId}_super_hard_mode');
+    return val == true;
   }
 
   Future<void> setSuperHardModeEnabled(bool enabled) async {
@@ -119,7 +121,8 @@ class HiveService {
 
   bool isBlurSolvedTubesEnabled() {
     final profileId = _getActiveProfileIdSync();
-    return _settingsBox.get('${profileId}_blur_solved_tubes', defaultValue: false) as bool;
+    final val = _settingsBox.get('${profileId}_blur_solved_tubes');
+    return val == true;
   }
 
   Future<void> setBlurSolvedTubesEnabled(bool enabled) async {
@@ -129,7 +132,8 @@ class HiveService {
 
   bool isInstantPouringEnabled() {
     final profileId = _getActiveProfileIdSync();
-    return _settingsBox.get('${profileId}_instant_pouring', defaultValue: false) as bool;
+    final val = _settingsBox.get('${profileId}_instant_pouring');
+    return val == true;
   }
 
   Future<void> setInstantPouringEnabled(bool enabled) async {
@@ -139,7 +143,8 @@ class HiveService {
 
   bool isHintHelperEnabled() {
     final profileId = _getActiveProfileIdSync();
-    return _settingsBox.get('${profileId}_hint_helper', defaultValue: false) as bool;
+    final val = _settingsBox.get('${profileId}_hint_helper');
+    return val == true;
   }
 
   Future<void> setHintHelperEnabled(bool enabled) async {
@@ -149,7 +154,8 @@ class HiveService {
 
   bool isSoundEffectsEnabled() {
     final profileId = _getActiveProfileIdSync();
-    return _settingsBox.get('${profileId}_sound_effects', defaultValue: true) as bool;
+    final val = _settingsBox.get('${profileId}_sound_effects');
+    return val == null ? true : val == true;
   }
 
   Future<void> setSoundEffectsEnabled(bool enabled) async {
@@ -159,7 +165,11 @@ class HiveService {
 
   Map<dynamic, dynamic>? getSavedLevelState() {
     final profileId = _getActiveProfileIdSync();
-    return _settingsBox.get('${profileId}_saved_level_state') as Map<dynamic, dynamic>?;
+    final raw = _settingsBox.get('${profileId}_saved_level_state');
+    if (raw is Map) {
+      return Map<dynamic, dynamic>.from(raw);
+    }
+    return null;
   }
 
   Future<void> saveActiveLevelState(Map<dynamic, dynamic> stateMap) async {
@@ -174,7 +184,11 @@ class HiveService {
 
   Map<dynamic, dynamic> getAllLevelStars() {
     final profileId = _getActiveProfileIdSync();
-    return _settingsBox.get('${profileId}_level_stars', defaultValue: <dynamic, dynamic>{}) as Map<dynamic, dynamic>;
+    final raw = _settingsBox.get('${profileId}_level_stars');
+    if (raw is Map) {
+      return Map<dynamic, dynamic>.from(raw);
+    }
+    return <dynamic, dynamic>{};
   }
 
   Future<void> saveLevelStars(int levelNumber, int stars) async {
@@ -186,7 +200,7 @@ class HiveService {
 
   String getThemePack() {
     final profileId = _getActiveProfileIdSync();
-    return _settingsBox.get('${profileId}_theme_pack', defaultValue: 'midnight') as String;
+    return _settingsBox.get('${profileId}_theme_pack')?.toString() ?? 'midnight';
   }
 
   Future<void> setThemePack(String themeName) async {

@@ -103,6 +103,7 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         toComponent: toComp,
         color: colorToMove,
         pourCount: pourCount,
+        duration: _state.isSoundEffectsEnabled ? 0.65 : 0.2,
       );
       if (!_state.isInstantPouringEnabled && _state.isSoundEffectsEnabled) {
         try {
@@ -169,8 +170,8 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     const double minMarginY = 16.0;
 
     final int capacity = level.tubes.isNotEmpty ? level.tubes.first.capacity : 4;
-    final double targetAspectRatio = (capacity * 0.62 + 0.30).clamp(2.5, 3.8);
-    final double minAspectRatio = (capacity * 0.48 + 0.20).clamp(2.0, 2.9);
+    final double targetAspectRatio = (capacity * 0.68 + 0.65).clamp(3.1, 4.8);
+    final double minAspectRatio = (capacity * 0.55 + 0.45).clamp(2.5, 3.8);
 
     final List<int> candidateRows = [];
     if (tubeCount <= 4) {
@@ -212,7 +213,7 @@ class WaterSortGame extends FlameGame with TapCallbacks {
 
       for (double ar = targetAspectRatio; ar >= minAspectRatio; ar -= 0.05) {
         double w = math.min(maxWFromWidth, maxHFromHeight / ar);
-        w = w.clamp(18.0, 92.0);
+        w = w.clamp(18.0, 54.0);
         double h = (w * ar).clamp(18.0 * ar, maxHFromHeight);
         w = h / ar;
 
@@ -1032,15 +1033,16 @@ class ActivePourAnimation {
     required this.toComponent,
     required this.color,
     required this.pourCount,
+    this.duration = 0.65,
   });
 
   final TubeComponent fromComponent;
   final TubeComponent toComponent;
   final Color color;
   final int pourCount;
+  final double duration;
 
   double elapsed = 0.0;
-  final double duration = 0.65;
 
   void reset() {
     fromComponent.isAnimatingSource = false;
