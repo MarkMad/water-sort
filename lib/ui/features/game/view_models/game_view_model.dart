@@ -537,6 +537,15 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       HapticFeedback.heavyImpact();
     }
 
+    if (_cachedSolution != null && _cachedSolution!.isNotEmpty) {
+      final expectedMove = _cachedSolution!.first;
+      if (expectedMove.fromIndex == fromIndex && expectedMove.toIndex == toIndex) {
+        _cachedSolution!.removeAt(0);
+      } else {
+        _cachedSolution = null;
+      }
+    }
+
     state = state.copyWith(
       level: newLevel,
       moveCount: state.moveCount + 1,
@@ -572,6 +581,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   }
 
   void resetLevel() {
+    _cachedSolution = null;
     _progressRepository.clearActiveLevelState();
     if (state.level != null) {
       if (state.isRandomMode) {
@@ -590,6 +600,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   void undoMove() {
     if (!state.canUndo || state.level == null || state.pouringFromIndex != null) return;
 
+    _cachedSolution = null;
     HapticFeedback.lightImpact();
 
     final snapshot = state.moveHistory.last;
@@ -637,6 +648,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     _progressRepository.saveActiveLevelState(stateMap);
   }
 
+  List<WaterSortMove>? _cachedSolution;
   bool _hintInFlight = false;
 
   Future<bool> showHint() async {
@@ -645,7 +657,15 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     _hintInFlight = true;
     try {
       final movesBefore = state.moveHistory.length;
-      final solution = await compute(LevelSolver.solveTask, state.level!.tubes);
+
+      List<WaterSortMove>? solution = _cachedSolution;
+      if (solution == null ||
+          solution.isEmpty ||
+          !isValidPour(solution.first.fromIndex, solution.first.toIndex)) {
+        solution = await compute(LevelSolver.solveTask, state.level!.tubes);
+        _cachedSolution = solution;
+      }
+
       if (state.moveHistory.length != movesBefore ||
           state.isComplete ||
           state.isTimeOut) {
@@ -653,11 +673,11 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       }
       if (solution != null && solution.isNotEmpty) {
         HapticFeedback.lightImpact();
-        final firstMove = solution.first;
+        final nextMove = solution.first;
         state = state.copyWith(
           selectedTubeIndex: () => null,
-          hintFromIndex: () => firstMove.fromIndex,
-          hintToIndex: () => firstMove.toIndex,
+          hintFromIndex: () => nextMove.fromIndex,
+          hintToIndex: () => nextMove.toIndex,
         );
         return true;
       }
