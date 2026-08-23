@@ -219,8 +219,12 @@ class SettingsView extends ConsumerWidget {
                   GestureDetector(
                     onTap: () async {
                       final Uri url = Uri.parse('https://github.com/sidhant947/water-sort');
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      try {
+                        final launched =
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                        if (!launched) debugPrint('Could not launch $url');
+                      } catch (e) {
+                        debugPrint('Could not launch $url: $e');
                       }
                     },
                     child: Container(
@@ -357,7 +361,7 @@ class SettingsView extends ConsumerWidget {
             ),
             const SizedBox(width: 16),
             _PremiumSwitch(
-              value: isEnabled ? value : false,
+              value: value,
               onTap: isEnabled ? onTap : () {},
             ),
           ],

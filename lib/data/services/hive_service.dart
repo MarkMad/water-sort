@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:watersort/domain/models/user_progress.dart';
 import 'package:watersort/domain/models/user_profile.dart';
@@ -10,6 +11,7 @@ class HiveService {
   static const String _settingsBoxName = 'game_settings';
   static const String _activeProfileKey = 'active_profile_id';
   static const String _legacyProgressKey = 'progress';
+  static const String _legacyMigratedKey = 'legacy_progress_migrated';
 
   late Box<UserProgress> _progressBox;
   late Box<UserProfile> _profilesBox;
@@ -17,7 +19,7 @@ class HiveService {
 
   Future<void> init() async {
     await Hive.initFlutter();
-    
+
     if (!Hive.isAdapterRegistered(0)) {
       Hive.registerAdapter(UserProgressAdapter());
     }
@@ -25,28 +27,84 @@ class HiveService {
       Hive.registerAdapter(UserProfileAdapter());
     }
 
-    _progressBox = await Hive.openBox<UserProgress>(_progressBoxName);
-    _profilesBox = await Hive.openBox<UserProfile>(_profilesBoxName);
-    _settingsBox = await Hive.openBox<dynamic>(_settingsBoxName);
+    _progressBox = await _openBoxWithRecovery<UserProgress>(_progressBoxName);
+    _profilesBox = await _openBoxWithRecovery<UserProfile>(_profilesBoxName);
+    _settingsBox = await _openBoxWithRecovery<dynamic>(_settingsBoxName);
 
-    // Migration / Initialization of default profile
-    if (_profilesBox.isEmpty) {
-      const defaultProfileId = 'default_profile';
-      final defaultProfile = UserProfile(
-        id: defaultProfileId,
-        name: 'Player 1',
-        createdAt: DateTime.now(),
-        avatarEmoji: '🧪',
-      );
-      await _profilesBox.put(defaultProfileId, defaultProfile);
+    await _migrateLegacyData();
+    await _ensureActiveProfileIntegrity();
+  }
+
+  Future<void> _ensureDefaultProfile() async {
+    const defaultProfileId = 'default_profile';
+    final defaultProfile = UserProfile(
+      id: defaultProfileId,
+      name: 'Player 1',
+      createdAt: DateTime.now(),
+      avatarEmoji: '🧪',
+    );
+    await _profilesBox.put(defaultProfileId, defaultProfile);
+    await _settingsBox.put(_activeProfileKey, defaultProfileId);
+  }
+
+  Future<void> _ensureActiveProfileIntegrity() async {
+    try {
+      final activeId = _settingsBox.get(_activeProfileKey)?.toString();
+      if (activeId != null && _profilesBox.containsKey(activeId)) return;
+      if (_profilesBox.isEmpty) {
+        await _ensureDefaultProfile();
+      } else {
+        await _settingsBox.put(_activeProfileKey, _profilesBox.values.first.id);
+      }
+    } catch (e) {
+      debugPrint('Hive: profile integrity check failed ($e).');
+    }
+  }
+
+  Future<Box<T>> _openBoxWithRecovery<T>(String name) async {
+    try {
+      return await Hive.openBox<T>(name);
+    } catch (e) {
+      debugPrint('Hive: failed to open box "$name" ($e); attempting recovery.');
+    }
+    try {
+      if (Hive.isBoxOpen(name)) {
+        await Hive.box(name).close();
+      }
+      await Hive.deleteBoxFromDisk(name);
+    } catch (e) {
+      debugPrint('Hive: could not delete corrupt box "$name" ($e).');
+    }
+    try {
+      return await Hive.openBox<T>(name);
+    } catch (e) {
+      debugPrint('Hive: box "$name" is unusable even after recovery ($e).');
+      rethrow;
+    }
+  }
+
+  Future<void> _migrateLegacyData() async {
+    try {
+      if (_settingsBox.get(_legacyMigratedKey) == true) return;
+
+      if (_profilesBox.isEmpty) {
+        await _ensureDefaultProfile();
+      }
 
       final legacyProgress = _progressBox.get(_legacyProgressKey);
       if (legacyProgress != null) {
-        await _progressBox.put('progress_$defaultProfileId', legacyProgress);
+        final activeId =
+            _settingsBox.get(_activeProfileKey)?.toString() ?? 'default_profile';
+        final targetKey = 'progress_$activeId';
+        if (!_progressBox.containsKey(targetKey)) {
+          await _progressBox.put(targetKey, legacyProgress);
+        }
         await _progressBox.delete(_legacyProgressKey);
       }
-      
-      await _settingsBox.put(_activeProfileKey, defaultProfileId);
+
+      await _settingsBox.put(_legacyMigratedKey, true);
+    } catch (e) {
+      debugPrint('Hive: legacy migration failed ($e); will retry on next launch.');
     }
   }
 
@@ -61,14 +119,22 @@ class HiveService {
   Future<void> deleteProfile(String profileId) async {
     await _profilesBox.delete(profileId);
     await _progressBox.delete('progress_$profileId');
-    
+
+    final prefix = '${profileId}_';
+    final orphanKeys = _settingsBox.keys
+        .where((key) => key.toString().startsWith(prefix))
+        .toList();
+    if (orphanKeys.isNotEmpty) {
+      await _settingsBox.deleteAll(orphanKeys);
+    }
+
     final activeId = await getActiveProfileId();
     if (activeId == profileId) {
       final remains = await getProfiles();
       if (remains.isNotEmpty) {
         await setActiveProfileId(remains.first.id);
       } else {
-        await _settingsBox.delete(_activeProfileKey);
+        await _ensureDefaultProfile();
       }
     }
   }

@@ -94,6 +94,9 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
                   final isCompleted = levelNumber <= highestCompleted;
                   final isCurrent = levelNumber == currentLevel;
                   final isLocked = levelNumber > currentLevel;
+                  final rawStars =
+                      state.levelStars[levelNumber] ?? state.levelStars[levelNumber.toString()];
+                  final stars = rawStars is int ? rawStars : 0;
 
                   return _buildLevelCard(
                     context,
@@ -101,6 +104,7 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
                     isCompleted: isCompleted,
                     isCurrent: isCurrent,
                     isLocked: isLocked,
+                    stars: stars,
                   );
                 },
               ),
@@ -114,6 +118,7 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
   Widget _buildLevelCard(
     BuildContext context, {
     required int levelNumber,
+    required int stars,
     required bool isCompleted,
     required bool isCurrent,
     required bool isLocked,
@@ -125,8 +130,6 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
 
     if (isCompleted) {
       borderColor = AppColors.accent.withOpacity(0.4);
-      final state = ref.read(homeViewModelProvider);
-      final stars = (state.levelStars[levelNumber] ?? state.levelStars[levelNumber.toString()] ?? 0) as int;
       content = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -142,7 +145,7 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(3, (starIndex) {
-              final isStarred = starIndex < (stars > 0 ? stars : 3);
+              final isStarred = starIndex < stars;
               return Icon(
                 Icons.star_rounded,
                 size: 10,
@@ -183,6 +186,7 @@ class _LevelSelectViewState extends ConsumerState<LevelSelectView> {
                 ),
               );
               // Refresh when returning to update completions
+              if (!mounted) return;
               ref.read(homeViewModelProvider.notifier).loadProgress();
             }
           : null,

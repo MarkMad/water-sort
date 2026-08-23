@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -12,9 +13,8 @@ import 'package:watersort/domain/use_cases/level_solver.dart';
 
 @immutable
 class MoveSnapshot {
-  const MoveSnapshot({required this.tubes, required this.moveCount});
+  const MoveSnapshot({required this.tubes});
   final List<Tube> tubes;
-  final int moveCount;
 }
 
 @immutable
@@ -72,6 +72,19 @@ class GameViewModelState {
   final int? hintToIndex;
 
   bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut;
+
+  int get earnedStars => calculateStars(
+    moves: moveCount,
+    optimalMoves: level?.optimalMoves,
+  );
+
+  static int calculateStars({required int moves, required int? optimalMoves}) {
+    final optimal = optimalMoves;
+    if (optimal == null || optimal <= 0) return 1;
+    if (moves <= optimal) return 3;
+    if (moves <= optimal + (optimal ~/ 2)) return 2;
+    return 1;
+  }
 
 
   GameViewModelState copyWith({
@@ -137,11 +150,9 @@ class GameViewModelState {
 class GameViewModel extends StateNotifier<GameViewModelState> {
   GameViewModel({
     required this._progressRepository,
-    required this._levelGenerator,
   }) : super(const GameViewModelState());
 
   final ProgressRepository _progressRepository;
-  final LevelGenerator _levelGenerator;
 
   Timer? _timer;
 
@@ -158,6 +169,27 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
   int _calculateTimerDuration(int colorCount) {
     return ((30 + (colorCount * 15)) * 1.5).round();
+  }
+
+  static const Map<String, int> _randomColorsByDifficulty = {
+    'Medium': 6,
+    'Hard': 9,
+    'Super Hard': 12,
+    'Super Duper Hard': 16,
+  };
+
+  static const Map<String, int> _randomCapacityByDifficulty = {
+    'Medium': 4,
+    'Hard': 5,
+    'Super Hard': 5,
+    'Super Duper Hard': 6,
+  };
+
+  (int, int) _resolveRandomConfig(String difficulty, int? colorCount, int? capacity) {
+    return (
+      colorCount ?? _randomColorsByDifficulty[difficulty] ?? 3,
+      capacity ?? _randomCapacityByDifficulty[difficulty] ?? 4,
+    );
   }
 
   void _startTimer(int seconds) {
@@ -210,7 +242,6 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           }).toList();
           return MoveSnapshot(
             tubes: tubes,
-            moveCount: hMap['moveCount'] as int,
           );
         }).toList();
 
@@ -237,19 +268,20 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isSoundEffectsEnabled: isSoundEffects,
         );
 
-        if (savedMap['timeLeft'] != null) {
-          _startTimer(savedMap['timeLeft'] as int);
+        final savedTimeLeft = savedMap['timeLeft'] as int?;
+        if (savedTimeLeft != null &&
+            _shouldHaveTimer(isRandom: false, levelNumber: levelNumber, difficulty: '')) {
+          _startTimer(savedTimeLeft);
         }
         return;
       }
 
-      final level = _levelGenerator.generate(levelNumber);
+      final level = await compute(LevelGenerator.generateTask, levelNumber);
       final isSuperHard = _progressRepository.isSuperHardModeEnabled();
       final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
       final isInstantPouring = _progressRepository.isInstantPouringEnabled();
       final isHintHelper = _progressRepository.isHintHelperEnabled();
       final isSoundEffects = _progressRepository.isSoundEffectsEnabled();
-      debugPrint('LOAD LEVEL: isSuperHard = $isSuperHard');
       state = GameViewModelState(
         level: level,
         isSuperHardModeEnabled: isSuperHard,
@@ -277,6 +309,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   }) async {
     _timer?.cancel();
     final int levelSeed = seed ?? DateTime.now().millisecondsSinceEpoch;
+    final (int resolvedColorCount, int resolvedCapacity) =
+        _resolveRandomConfig(difficulty, colorCount, capacity);
     final isSuperHard = _progressRepository.isSuperHardModeEnabled();
     final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
     final isInstantPouring = _progressRepository.isInstantPouringEnabled();
@@ -287,8 +321,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       isRandomMode: true,
       randomDifficulty: difficulty,
       randomSeed: levelSeed,
-      randomColorCount: colorCount,
-      randomCapacity: capacity,
+      randomColorCount: resolvedColorCount,
+      randomCapacity: resolvedCapacity,
       isSuperHardModeEnabled: isSuperHard,
       isBlurSolvedTubesEnabled: isBlurSolved,
       isInstantPouringEnabled: isInstantPouring,
@@ -303,8 +337,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       if (savedMap != null &&
           savedMap['isRandomMode'] == true &&
           savedMap['randomDifficulty'] == difficulty &&
-          savedColorCount == colorCount &&
-          savedCapacity == capacity &&
+          savedColorCount == resolvedColorCount &&
+          savedCapacity == resolvedCapacity &&
           (seed == null || savedMap['randomSeed'] == seed)) {
         final savedTubes = (savedMap['tubes'] as List).map((t) {
           final tMap = Map<dynamic, dynamic>.from(t as Map);
@@ -325,7 +359,6 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           }).toList();
           return MoveSnapshot(
             tubes: tubes,
-            moveCount: hMap['moveCount'] as int,
           );
         }).toList();
 
@@ -348,58 +381,25 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
           isBlurSolvedTubesEnabled: isBlurSolved,
           isInstantPouringEnabled: isInstantPouring,
           isHintHelperEnabled: isHintHelper,
+          isSoundEffectsEnabled: isSoundEffects,
         );
 
-        if (savedMap['timeLeft'] != null) {
-          _startTimer(savedMap['timeLeft'] as int);
+        final savedTimeLeft = savedMap['timeLeft'] as int?;
+        if (savedTimeLeft != null &&
+            _shouldHaveTimer(isRandom: true, levelNumber: -1, difficulty: difficulty)) {
+          _startTimer(savedTimeLeft);
         }
         return;
       }
 
-      int finalColorCount = colorCount ?? 3;
-      int finalCapacity = capacity ?? 4;
-      if (colorCount == null && capacity == null) {
-        if (difficulty == 'Medium') {
-          finalColorCount = 6;
-          finalCapacity = 4;
-        } else if (difficulty == 'Hard') {
-          finalColorCount = 9;
-          finalCapacity = 5;
-        } else if (difficulty == 'Super Hard') {
-          finalColorCount = 12;
-          finalCapacity = 5;
-        } else if (difficulty == 'Super Duper Hard') {
-          finalColorCount = 16;
-          finalCapacity = 6;
-        }
-      } else {
-        if (colorCount == null) {
-          if (difficulty == 'Easy') finalColorCount = 3;
-          else if (difficulty == 'Medium') finalColorCount = 6;
-          else if (difficulty == 'Hard') finalColorCount = 9;
-          else if (difficulty == 'Super Hard') finalColorCount = 12;
-          else if (difficulty == 'Super Duper Hard') finalColorCount = 16;
-        }
-        if (capacity == null) {
-          if (difficulty == 'Easy') finalCapacity = 4;
-          else if (difficulty == 'Medium') finalCapacity = 4;
-          else if (difficulty == 'Hard') finalCapacity = 5;
-          else if (difficulty == 'Super Hard') finalCapacity = 5;
-          else if (difficulty == 'Super Duper Hard') finalCapacity = 6;
-        }
-      }
-
-      final level = _levelGenerator.generateRandom(
-        colorCount: finalColorCount,
-        seed: levelSeed,
-        capacity: finalCapacity,
+      final level = await compute(
+        LevelGenerator.generateRandomTask,
+        (resolvedColorCount, levelSeed, resolvedCapacity),
       );
 
       state = state.copyWith(
         level: level,
         isLoading: false,
-        randomColorCount: finalColorCount,
-        randomCapacity: finalCapacity,
       );
 
       _progressRepository.clearActiveLevelState();
@@ -480,6 +480,14 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
   Future<void> completePendingPour() async {
     if (state.pouringFromIndex == null || state.pouringToIndex == null || state.level == null) return;
+    if (state.isTimeOut) {
+      state = state.copyWith(
+        selectedTubeIndex: () => null,
+        pouringFromIndex: () => null,
+        pouringToIndex: () => null,
+      );
+      return;
+    }
     final fromIndex = state.pouringFromIndex!;
     final toIndex = state.pouringToIndex!;
 
@@ -510,7 +518,6 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
     final snapshot = MoveSnapshot(
       tubes: state.level!.tubes.map((t) => Tube(colors: List<Color>.from(t.colors), capacity: t.capacity)).toList(),
-      moveCount: state.moveCount,
     );
 
     final newFromColors = List<Color>.from(fromTube.colors)
@@ -552,15 +559,10 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     state = state.copyWith(isProgressSaved: true);
     _progressRepository.clearActiveLevelState();
     final moves = state.moveCount;
-    final optimal = state.level?.optimalMoves ?? 0;
-    final int filledStars;
-    if (moves < optimal) {
-      filledStars = 3;
-    } else if (moves == optimal) {
-      filledStars = 2;
-    } else {
-      filledStars = 1;
-    }
+    final filledStars = GameViewModelState.calculateStars(
+      moves: moves,
+      optimalMoves: state.level?.optimalMoves,
+    );
     await _progressRepository.saveLevelStars(state.level!.levelNumber, filledStars);
     if (state.isRandomMode) {
       await _progressRepository.addRandomLevelMoves(state.moveCount);
@@ -586,7 +588,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   }
 
   void undoMove() {
-    if (!state.canUndo || state.level == null) return;
+    if (!state.canUndo || state.level == null || state.pouringFromIndex != null) return;
 
     HapticFeedback.lightImpact();
 
@@ -626,7 +628,6 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         'capacity': t.capacity,
       }).toList(),
       'moveHistory': state.moveHistory.map((s) => {
-        'moveCount': s.moveCount,
         'tubes': s.tubes.map((t) => {
           'colors': t.colors.map((c) => c.value).toList(),
           'capacity': t.capacity,
@@ -636,21 +637,34 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     _progressRepository.saveActiveLevelState(stateMap);
   }
 
-  bool showHint() {
+  bool _hintInFlight = false;
+
+  Future<bool> showHint() async {
     if (state.level == null || state.isComplete || state.isTimeOut) return false;
-    final solver = LevelSolver();
-    final solution = solver.solve(state.level!.tubes);
-    if (solution != null && solution.isNotEmpty) {
-      HapticFeedback.lightImpact();
-      final firstMove = solution.first;
-      state = state.copyWith(
-        selectedTubeIndex: () => null,
-        hintFromIndex: () => firstMove.fromIndex,
-        hintToIndex: () => firstMove.toIndex,
-      );
-      return true;
+    if (_hintInFlight) return true;
+    _hintInFlight = true;
+    try {
+      final movesBefore = state.moveHistory.length;
+      final solution = await compute(LevelSolver.solveTask, state.level!.tubes);
+      if (state.moveHistory.length != movesBefore ||
+          state.isComplete ||
+          state.isTimeOut) {
+        return false;
+      }
+      if (solution != null && solution.isNotEmpty) {
+        HapticFeedback.lightImpact();
+        final firstMove = solution.first;
+        state = state.copyWith(
+          selectedTubeIndex: () => null,
+          hintFromIndex: () => firstMove.fromIndex,
+          hintToIndex: () => firstMove.toIndex,
+        );
+        return true;
+      }
+      return false;
+    } finally {
+      _hintInFlight = false;
     }
-    return false;
   }
 
   @override

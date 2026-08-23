@@ -86,8 +86,12 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   GestureDetector(
                     onTap: () async {
                       final Uri url = Uri.parse('https://ko-fi.com/sidhant947');
-                      if (await canLaunchUrl(url)) {
-                        await launchUrl(url, mode: LaunchMode.externalApplication);
+                      try {
+                        final launched =
+                            await launchUrl(url, mode: LaunchMode.externalApplication);
+                        if (!launched) debugPrint('Could not launch $url');
+                      } catch (e) {
+                        debugPrint('Could not launch $url: $e');
                       }
                     },
                     child: Container(
@@ -219,17 +223,18 @@ class _HomeViewState extends ConsumerState<HomeView> {
               // Play Button (Primary CTA)
               TangibleButton(
                 text: state.progress == null || state.progress!.currentLevel <= 1 ? 'Start Game' : 'Continue',
-                onPressed: state.isLoading
-                    ? null
-                    : () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => GameView(levelNumber: state.progress?.currentLevel ?? 1),
-                          ),
-                        );
-                        ref.read(homeViewModelProvider.notifier).loadProgress();
-                      },
+                    onPressed: state.isLoading
+                        ? null
+                        : () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => GameView(levelNumber: state.progress?.currentLevel ?? 1),
+                              ),
+                            );
+                            if (!mounted) return;
+                            ref.read(homeViewModelProvider.notifier).loadProgress();
+                          },
               ),
 
               const SizedBox(height: 12),
@@ -589,7 +594,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   width: 1.0,
                 ),
               ),
-              child: Padding(
+              child: SingleChildScrollView(
+                child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -692,12 +698,13 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     ),
                   ],
                 ),
+                ),
               ),
             );
           },
         );
       },
-    );
+    ).whenComplete(() => nameController.dispose());
   }
 
   void _showEditProfileDialog(BuildContext context, UserProfile profile) {
@@ -720,7 +727,8 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   width: 1.0,
                 ),
               ),
-              child: Padding(
+              child: SingleChildScrollView(
+                child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -827,11 +835,12 @@ class _HomeViewState extends ConsumerState<HomeView> {
                     ),
                   ],
                 ),
+                ),
               ),
             );
           },
         );
       },
-    );
+    ).whenComplete(() => nameController.dispose());
   }
 }

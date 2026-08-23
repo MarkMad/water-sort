@@ -25,6 +25,11 @@ class WaterSortGame extends FlameGame with TapCallbacks {
   final List<GameParticle> _particles = [];
   final List<TapRipple> _ripples = [];
 
+  double? _layoutWidth;
+  double? _layoutHeight;
+  int? _layoutTubeCount;
+  int? _layoutCapacity;
+
   void updateState(GameViewModelState newState) {
     final bool levelChanged = _state.level != newState.level || _tubes.length != (newState.level?.tubes.length ?? 0);
     if (levelChanged ||
@@ -103,7 +108,7 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         toComponent: toComp,
         color: colorToMove,
         pourCount: pourCount,
-        duration: _state.isSoundEffectsEnabled ? 0.65 : 0.2,
+        duration: 0.65,
       );
       if (!_state.isInstantPouringEnabled && _state.isSoundEffectsEnabled) {
         try {
@@ -166,10 +171,23 @@ class WaterSortGame extends FlameGame with TapCallbacks {
     final int tubeCount = level.tubes.length;
     if (tubeCount == 0) return;
 
+    final int capacity = level.tubes.isNotEmpty ? level.tubes.first.capacity : 4;
+
+    if (_tubes.length == tubeCount &&
+        _layoutWidth == containerWidth &&
+        _layoutHeight == containerHeight &&
+        _layoutTubeCount == tubeCount &&
+        _layoutCapacity == capacity) {
+      return;
+    }
+    _layoutWidth = containerWidth;
+    _layoutHeight = containerHeight;
+    _layoutTubeCount = tubeCount;
+    _layoutCapacity = capacity;
+
     const double minMarginX = 10.0;
     const double minMarginY = 16.0;
 
-    final int capacity = level.tubes.isNotEmpty ? level.tubes.first.capacity : 4;
     final double targetAspectRatio = (capacity * 0.68 + 0.65).clamp(3.1, 4.8);
     final double minAspectRatio = (capacity * 0.55 + 0.45).clamp(2.5, 3.8);
 
@@ -461,6 +479,25 @@ class TubeComponent extends PositionComponent {
   bool _wasSelected = false;
   double sloshDisplacement = 0.0;
   double sloshVelocity = 0.0;
+
+  static final Map<String, TextPainter> _iconPainters = {};
+
+  TextPainter _iconPainter(IconData icon, double fontSize) {
+    final key = '${icon.codePoint}|${icon.fontFamily}|${fontSize.toStringAsFixed(1)}';
+    return _iconPainters.putIfAbsent(key, () {
+      return TextPainter(
+        textDirection: TextDirection.ltr,
+        text: TextSpan(
+          text: String.fromCharCode(icon.codePoint),
+          style: TextStyle(
+            fontSize: fontSize,
+            fontFamily: icon.fontFamily ?? 'MaterialIcons',
+            color: Colors.white.withValues(alpha: 0.85),
+          ),
+        ),
+      )..layout();
+    });
+  }
 
   @override
   void update(double dt) {
@@ -814,29 +851,15 @@ class TubeComponent extends PositionComponent {
       final double centerY = bottomY - segmentHeight / 2;
 
       final icon = _getIconForColor(color);
-      final codePoint = icon.codePoint;
-      final fontFamily = icon.fontFamily ?? 'MaterialIcons';
-
       final maxDiameter = math.min(size.x * 0.85, segmentHeight * 0.85);
       final bgPaint = Paint()
         ..color = Colors.white.withValues(alpha: 0.18)
         ..style = PaintingStyle.fill;
-      
+
       canvas.drawCircle(Offset(size.x / 2, centerY), maxDiameter / 2, bgPaint);
 
       final iconSize = maxDiameter * 0.8;
-      final textPainter = TextPainter(
-        textDirection: TextDirection.ltr,
-        text: TextSpan(
-          text: String.fromCharCode(codePoint),
-          style: TextStyle(
-            fontSize: iconSize,
-            fontFamily: fontFamily,
-            color: Colors.white.withValues(alpha: 0.85),
-          ),
-        ),
-      );
-      textPainter.layout();
+      final textPainter = _iconPainter(icon, iconSize);
       textPainter.paint(
         canvas,
         Offset(

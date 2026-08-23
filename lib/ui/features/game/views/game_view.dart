@@ -53,7 +53,9 @@ class _GameViewState extends ConsumerState<GameView> {
       }
     });
     _hudSwitchTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      if (mounted) {
+      if (!mounted) return;
+      final gameState = ref.read(gameViewModelProvider);
+      if (!gameState.isRandomMode && gameState.timeLeft != null) {
         setState(() {
           _showTimerInHud = !_showTimerInHud;
         });
@@ -322,11 +324,16 @@ class _GameViewState extends ConsumerState<GameView> {
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: state.isHintHelperEnabled
+      floatingActionButton: state.isHintHelperEnabled &&
+              state.level != null &&
+              !state.isLoading &&
+              !state.isComplete &&
+              !state.isTimeOut
           ? FloatingActionButton(
-              onPressed: () {
-                final success = ref.read(gameViewModelProvider.notifier).showHint();
-                if (!success) {
+              onPressed: () async {
+                final success =
+                    await ref.read(gameViewModelProvider.notifier).showHint();
+                if (!success && context.mounted) {
                   ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
@@ -382,17 +389,7 @@ class _GameViewState extends ConsumerState<GameView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(3, (index) {
-                  final moves = state.moveCount;
-                  final optimal = state.level?.optimalMoves ?? 0;
-                  final int filledStars;
-                  if (moves < optimal) {
-                    filledStars = 3;
-                  } else if (moves == optimal) {
-                    filledStars = 2;
-                  } else {
-                    filledStars = 1;
-                  }
-                  final isFilled = index < filledStars;
+                  final isFilled = index < state.earnedStars;
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),
                     child: Icon(

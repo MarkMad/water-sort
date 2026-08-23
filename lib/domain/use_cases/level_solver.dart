@@ -9,6 +9,9 @@ class WaterSortMove {
 }
 
 class LevelSolver {
+  static List<WaterSortMove>? solveTask(List<Tube> tubes) =>
+      LevelSolver().solve(tubes);
+
   List<WaterSortMove>? solve(List<Tube> initialTubes, {int maxVisited = 50000}) {
     final visited = <String>{};
     List<WaterSortMove>? result;

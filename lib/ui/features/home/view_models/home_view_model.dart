@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:watersort/data/repositories/progress_repository.dart';
@@ -105,6 +106,7 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
         isLoading: false,
       );
     } catch (e) {
+      debugPrint('HomeViewModel: failed to load progress: $e');
       state = state.copyWith(isLoading: false);
     }
   }
@@ -158,25 +160,45 @@ class HomeViewModel extends StateNotifier<HomeViewModelState> {
 
   Future<void> createProfile(String name, String emoji) async {
     state = state.copyWith(isLoading: true);
-    await _progressRepository.createProfile(name, emoji);
-    await loadProgress();
+    try {
+      await _progressRepository.createProfile(name, emoji);
+      await loadProgress();
+    } catch (e) {
+      debugPrint('HomeViewModel: failed to create profile: $e');
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   Future<void> switchProfile(String profileId) async {
     state = state.copyWith(isLoading: true);
-    await _progressRepository.switchProfile(profileId);
-    await loadProgress();
+    try {
+      await _progressRepository.switchProfile(profileId);
+      await loadProgress();
+    } catch (e) {
+      debugPrint('HomeViewModel: failed to switch profile: $e');
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   Future<void> deleteProfile(String profileId) async {
     state = state.copyWith(isLoading: true);
-    await _progressRepository.deleteProfile(profileId);
-    await loadProgress();
+    try {
+      await _progressRepository.deleteProfile(profileId);
+      await loadProgress();
+    } catch (e) {
+      debugPrint('HomeViewModel: failed to delete profile: $e');
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   Future<void> updateProfile(UserProfile profile) async {
     state = state.copyWith(isLoading: true);
-    await _progressRepository.updateProfile(profile);
-    await loadProgress();
+    try {
+      await _progressRepository.updateProfile(profile);
+      await loadProgress();
+    } catch (e) {
+      debugPrint('HomeViewModel: failed to update profile: $e');
+      state = state.copyWith(isLoading: false);
+    }
   }
 }

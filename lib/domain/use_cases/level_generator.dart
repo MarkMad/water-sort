@@ -4,11 +4,24 @@ import 'package:flutter/material.dart';
 
 import 'package:watersort/domain/models/game_level.dart';
 import 'package:watersort/domain/models/tube.dart';
+import 'package:watersort/domain/use_cases/level_solver.dart';
 import 'package:watersort/ui/core/theme/app_colors.dart';
 
 class LevelGenerator {
   static const int _baseColors = 3;
   static const int _maxColors = 16;
+
+  static GameLevel generateTask(int levelNumber) =>
+      LevelGenerator().generate(levelNumber);
+
+  static GameLevel generateRandomTask((int, int, int) params) {
+    final (colorCount, seed, capacity) = params;
+    return LevelGenerator().generateRandom(
+      colorCount: colorCount,
+      seed: seed,
+      capacity: capacity,
+    );
+  }
 
   GameLevel generate(int levelNumber) {
     final random = Random(levelNumber);
@@ -30,7 +43,7 @@ class LevelGenerator {
     return GameLevel(
       levelNumber: levelNumber,
       tubes: tubes,
-      optimalMoves: _getPredefinedOptimalMoves(colorCount, levelNumber),
+      optimalMoves: _computeOptimalMoves(tubes, fallback: colorCount),
     );
   }
 
@@ -64,15 +77,18 @@ class LevelGenerator {
     return GameLevel(
       levelNumber: -1,
       tubes: tubes,
-      optimalMoves: _getPredefinedOptimalMoves(colorCount, seed),
+      optimalMoves: _computeOptimalMoves(tubes, fallback: colorCount),
     );
   }
 
-  int _getPredefinedOptimalMoves(int colorCount, int seed) {
-    final random = Random(seed);
-    final baseMoves = colorCount * 4;
-    final variance = random.nextInt(5) - 2;
-    return baseMoves + variance;
+  int _computeOptimalMoves(List<Tube> tubes, {required int fallback}) {
+    const budgets = [50000, 200000, 800000];
+    List<WaterSortMove>? solution;
+    for (final budget in budgets) {
+      solution = LevelSolver().solve(tubes, maxVisited: budget);
+      if (solution != null) break;
+    }
+    return max(fallback, solution?.length ?? fallback);
   }
 
   int _getColorCount(int level) {
@@ -106,7 +122,9 @@ class LevelGenerator {
     required Random random,
     required int levelNumber,
   }) {
-    while (true) {
+    const maxAttempts = 200;
+    List<Tube>? lastCandidate;
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
       final List<List<Color>> chunks = [];
       for (final color in colors) {
         if (levelNumber > 0 && levelNumber <= 3 && capacity == 4) {
@@ -151,10 +169,12 @@ class LevelGenerator {
           .map((cList) => Tube(colors: cList, capacity: capacity))
           .toList();
 
+      lastCandidate = candidateTubes;
       if (_isSolvable(candidateTubes)) {
         return candidateTubes;
       }
     }
+    return lastCandidate!;
   }
 
   bool _isSolvable(List<Tube> initialTubes) {
