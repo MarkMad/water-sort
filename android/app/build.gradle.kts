@@ -72,6 +72,11 @@ android {
             if (abiCode != null) {
                 output.versionCodeOverride = (variant.versionCode) * 10 + abiCode
             }
+            output.outputFileName = if (abiName != null) {
+                "water-sort-v${variant.versionName}-$abiName.apk"
+            } else {
+                "water-sort-v${variant.versionName}.apk"
+            }
         }
     }
 
