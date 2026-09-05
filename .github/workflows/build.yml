@@ -1,59 +1,130 @@
 name: Build and Release
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g. v1.0.0)'
-        required: true
-        default: 'v1.0.0'
+        description: 'Optional release tag matching pubspec.yaml (e.g. v1.0.15); leave blank for artifacts only'
+        required: false
+        default: ''
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: android-${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: false
 
 jobs:
   build:
-    name: Build
+    name: Android binaries
     runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      version: ${{ steps.version.outputs.name }}
     steps:
-      - name: Checkout Code
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Java
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: zulu
           java-version: '17'
 
-      - name: Setup Flutter
+      - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          flutter-version: '3.47.1'
+          channel: stable
           cache: true
 
-      - name: Get Dependencies
+      - name: Read and validate version
+        id: version
+        env:
+          RELEASE_TAG: ${{ inputs.version }}
+        run: |
+          version=$(sed -n 's/^version: *\([^+ ]*\).*/\1/p' pubspec.yaml)
+          test -n "$version"
+          if [[ -n "$RELEASE_TAG" && "$RELEASE_TAG" != "v$version" ]]; then
+            echo "Release tag must match pubspec.yaml: v$version" >&2
+            exit 1
+          fi
+          echo "name=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Get dependencies
         run: flutter pub get
 
-      - name: Setup Keystore
-        run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/upload-keystore.jks
-          echo "storePassword=${{ secrets.STORE_PASSWORD }}" > android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "storeFile=upload-keystore.jks" >> android/key.properties
+      - name: Run regression tests
+        run: flutter test tests
 
-      - name: Build Android Artifacts
+      - name: Set up release signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
         run: |
-          flutter build apk --release
-          flutter build apk --release --split-per-abi
-          flutter build appbundle --release
+          : "${KEYSTORE_BASE64:?Missing KEYSTORE_BASE64 secret}"
+          : "${STORE_PASSWORD:?Missing STORE_PASSWORD secret}"
+          : "${KEY_PASSWORD:?Missing KEY_PASSWORD secret}"
+          : "${KEY_ALIAS:?Missing KEY_ALIAS secret}"
+          umask 077
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > android/app/upload-keystore.jks
+          printf 'storePassword=%s\nkeyPassword=%s\nkeyAlias=%s\nstoreFile=upload-keystore.jks\n' \
+            "$STORE_PASSWORD" "$KEY_PASSWORD" "$KEY_ALIAS" > android/key.properties
 
-      - name: Upload Artifacts to GitHub Release
+      - name: Build and collect Android binaries
+        env:
+          VERSION: ${{ steps.version.outputs.name }}
+        run: |
+          mkdir -p dist
+          flutter build apk --release --no-pub
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/water-sort-v$VERSION.apk"
+          flutter build apk --release --no-pub --split-per-abi
+          for abi in armeabi-v7a arm64-v8a x86_64; do
+            cp "build/app/outputs/flutter-apk/app-$abi-release.apk" "dist/water-sort-v$VERSION-$abi.apk"
+          done
+          flutter build appbundle --release --no-pub
+          cp build/app/outputs/bundle/release/app-release.aab "dist/water-sort-v$VERSION.aab"
+          flutter build apk --release --no-pub --android-project-arg=testBuild=true
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/water-sort-test-v$VERSION.apk"
+          (cd dist && sha256sum *.apk *.aab > SHA256SUMS.txt)
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: water-sort-v${{ steps.version.outputs.name }}-${{ github.run_number }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Remove signing files
+        if: always()
+        run: rm -f android/key.properties android/app/upload-keystore.jks
+
+  release:
+    name: Publish requested release
+    if: github.event_name == 'workflow_dispatch' && inputs.version != ''
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: water-sort-v${{ needs.build.outputs.version }}-${{ github.run_number }}
+          path: dist
+
+      - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.version }}
+          target_commitish: ${{ github.sha }}
           name: ${{ inputs.version }}
           generate_release_notes: true
-          files: |
-            build/app/outputs/flutter-apk/*.apk
-            build/app/outputs/bundle/release/*.aab
+          fail_on_unmatched_files: true
+          files: dist/*
