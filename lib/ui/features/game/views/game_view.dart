@@ -1,9 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:watersort/ui/core/game_audio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flame/game.dart';
 
-import 'package:url_launcher/url_launcher.dart';
+import 'package:watersort/ui/core/external_links.dart';
 
 import 'package:watersort/ui/core/theme/app_colors.dart';
 import 'package:watersort/ui/core/widgets/tangible_button.dart';
@@ -90,6 +91,9 @@ class _GameViewState extends ConsumerState<GameView> {
 
     ref.listen<GameViewModelState>(gameViewModelProvider, (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
+        if (!next.isInstantPouringEnabled && next.isSoundEffectsEnabled) {
+          unawaited(playGameSound('level_complete.mp3'));
+        }
         _showCompleteDialog();
       }
       if (next.isTimeOut && !(prev?.isTimeOut ?? false)) {
@@ -520,12 +524,7 @@ class _GameViewState extends ConsumerState<GameView> {
                     height: 50,
                     onPressed: () async {
                       final Uri url = Uri.parse('https://ko-fi.com/sidhant947');
-                      if (!await launchUrl(
-                        url,
-                        mode: LaunchMode.externalApplication,
-                      )) {
-                        debugPrint('Could not launch $url');
-                      }
+                      await openExternalLink(url);
                     },
                   ),
                 ],

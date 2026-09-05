@@ -29,6 +29,16 @@ Sort the colored water in the tubes until each tube contains only one color. Sim
 - **Clean UI** — Minimalist design with smooth animations and a relaxing color palette.
 
 
+## Local testing on Android
+
+To install alongside a store or F-Droid copy, build with a separate application ID:
+
+```powershell
+flutter build apk --release --android-project-arg=testBuild=true
+```
+
+This creates **Water Sort Test** (`com.sidhant.watersort.testing`) with its own progress. Normal builds retain the original application ID and name.
+
 ## License
 
 GPL v3

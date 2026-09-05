@@ -7,6 +7,9 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Enable with flutter build apk --android-project-arg=testBuild=true for an independent test install.
+val isTestBuild = providers.gradleProperty("testBuild").orNull == "true"
+
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("key.properties")
 val hasReleaseKeystore = keystorePropertiesFile.exists()
@@ -33,6 +36,8 @@ android {
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.sidhant.watersort"
+        if (isTestBuild) applicationIdSuffix = ".testing"
+        manifestPlaceholders["appLabel"] = if (isTestBuild) "Water Sort Test" else "Water Sort"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

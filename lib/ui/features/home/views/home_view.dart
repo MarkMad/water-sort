@@ -7,7 +7,7 @@ import 'package:watersort/ui/features/game/views/game_view.dart';
 import 'package:watersort/ui/features/how_to_play/views/how_to_play_view.dart';
 import 'package:watersort/ui/features/level_select/views/level_select_view.dart';
 import 'package:watersort/ui/providers.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:watersort/ui/core/external_links.dart';
 import 'package:watersort/domain/models/user_profile.dart';
 import 'package:watersort/ui/features/home/views/settings_view.dart';
 
@@ -84,15 +84,10 @@ class _HomeViewState extends ConsumerState<HomeView> {
                   else
                     const SizedBox.shrink(),
                   GestureDetector(
+                    behavior: HitTestBehavior.opaque,
                     onTap: () async {
                       final Uri url = Uri.parse('https://ko-fi.com/sidhant947');
-                      try {
-                        final launched =
-                            await launchUrl(url, mode: LaunchMode.externalApplication);
-                        if (!launched) debugPrint('Could not launch $url');
-                      } catch (e) {
-                        debugPrint('Could not launch $url: $e');
-                      }
+                      await openExternalLink(url);
                     },
                     child: Container(
                       padding: const EdgeInsets.all(10),
