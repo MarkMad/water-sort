@@ -35,7 +35,7 @@ Every push to `main` runs the regression tests and builds signed Android binarie
 
 The download contains a universal APK, APKs for ARMv7/ARM64/x86-64, an Android App Bundle, a separate **Water Sort Test** APK, and SHA-256 checksums. The test APK installs alongside F-Droid or store copies with independent progress.
 
-To publish a release, run the workflow manually and enter the tag matching `pubspec.yaml` (for example, `v1.0.15`). Leave the tag blank to generate artifacts only. Signing uses the repository's existing `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_PASSWORD`, and `KEY_ALIAS` secrets.
+Pushing a version tag matching `pubspec.yaml` (for example, `v1.0.15`) automatically publishes the binaries on the Releases page. You can also run the workflow manually and enter the matching tag; leave it blank to generate artifacts only. Signing uses the repository's existing `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_PASSWORD`, and `KEY_ALIAS` secrets.
 
 ## Local testing on Android
 
