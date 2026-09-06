@@ -155,6 +155,8 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   final ProgressRepository _progressRepository;
 
   Timer? _timer;
+  int _loadRequest = 0;
+  int? _requestedLevelNumber;
 
   bool _shouldHaveTimer({required bool isRandom, required int levelNumber, required String difficulty}) {
     if (!_progressRepository.isTimerEnabled()) {
@@ -194,7 +196,9 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
 
   void _startTimer(int seconds) {
     _timer?.cancel();
-    state = state.copyWith(timeLeft: () => seconds, isTimeOut: false);
+    state = state.copyWith(timeLeft: () => seconds, isTimeOut: seconds <= 0);
+    _saveCurrentState();
+    if (seconds <= 0) return;
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (state.timeLeft == null || state.timeLeft! <= 0) {
         timer.cancel();
@@ -211,10 +215,15 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       } else {
         state = state.copyWith(timeLeft: () => newTime);
       }
+      _saveCurrentState();
     });
   }
 
   Future<void> loadLevel(int levelNumber) async {
+    if (!mounted) return;
+    final request = ++_loadRequest;
+    _requestedLevelNumber = levelNumber;
+    _cachedSolution = null;
     _timer?.cancel();
     state = const GameViewModelState(isLoading: true);
 
@@ -277,6 +286,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
       }
 
       final level = await compute(LevelGenerator.generateTask, levelNumber);
+      if (!mounted || request != _loadRequest) return;
       final isSuperHard = _progressRepository.isSuperHardModeEnabled();
       final isBlurSolved = _progressRepository.isBlurSolvedTubesEnabled();
       final isInstantPouring = _progressRepository.isInstantPouringEnabled();
@@ -297,6 +307,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         _startTimer(_calculateTimerDuration(level.colorCount));
       }
     } catch (e) {
+      if (!mounted || request != _loadRequest) return;
       state = state.copyWith(isLoading: false, error: 'Failed to load level: $e');
     }
   }
@@ -307,6 +318,10 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     int? capacity,
     int? seed,
   }) async {
+    if (!mounted) return;
+    final request = ++_loadRequest;
+    _requestedLevelNumber = null;
+    _cachedSolution = null;
     _timer?.cancel();
     final int levelSeed = seed ?? DateTime.now().millisecondsSinceEpoch;
     final (int resolvedColorCount, int resolvedCapacity) =
@@ -396,6 +411,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         LevelGenerator.generateRandomTask,
         (resolvedColorCount, levelSeed, resolvedCapacity),
       );
+      if (!mounted || request != _loadRequest) return;
 
       state = state.copyWith(
         level: level,
@@ -408,6 +424,7 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         _startTimer(_calculateTimerDuration(level.colorCount));
       }
     } catch (e) {
+      if (!mounted || request != _loadRequest) return;
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load random level: $e',
@@ -568,32 +585,38 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
     state = state.copyWith(isProgressSaved: true);
     _progressRepository.clearActiveLevelState();
     final moves = state.moveCount;
+    final levelNumber = state.level!.levelNumber;
+    final isRandom = state.isRandomMode;
     final filledStars = GameViewModelState.calculateStars(
       moves: moves,
       optimalMoves: state.level?.optimalMoves,
     );
-    await _progressRepository.saveLevelStars(state.level!.levelNumber, filledStars);
-    if (state.isRandomMode) {
-      await _progressRepository.addRandomLevelMoves(state.moveCount);
+    await _progressRepository.saveLevelStars(levelNumber, filledStars);
+    if (isRandom) {
+      await _progressRepository.addRandomLevelMoves(moves);
     } else {
-      await _progressRepository.completeLevel(state.level!.levelNumber, state.moveCount);
+      await _progressRepository.completeLevel(levelNumber, moves);
     }
   }
 
-  void resetLevel() {
+  Future<void> resetLevel() async {
+    if (!mounted) return;
+    final previous = state;
+    final levelNumber = _requestedLevelNumber;
+    final request = ++_loadRequest;
+    _timer?.cancel();
     _cachedSolution = null;
-    _progressRepository.clearActiveLevelState();
-    if (state.level != null) {
-      if (state.isRandomMode) {
-        loadRandomLevel(
-          state.randomDifficulty ?? 'Easy',
-          colorCount: state.randomColorCount,
-          capacity: state.randomCapacity,
-          seed: state.randomSeed,
-        );
-      } else {
-        loadLevel(state.level!.levelNumber);
-      }
+    await _progressRepository.clearActiveLevelState();
+    if (!mounted || request != _loadRequest) return;
+    if (previous.isRandomMode) {
+      await loadRandomLevel(
+        previous.randomDifficulty ?? 'Easy',
+        colorCount: previous.randomColorCount,
+        capacity: previous.randomCapacity,
+        seed: previous.randomSeed,
+      );
+    } else if (levelNumber != null) {
+      await loadLevel(levelNumber);
     }
   }
 
@@ -652,25 +675,27 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
   bool _hintInFlight = false;
 
   Future<bool> showHint() async {
-    if (state.level == null || state.isComplete || state.isTimeOut) return false;
+    if (!mounted || state.level == null || state.isComplete || state.isTimeOut) return false;
     if (_hintInFlight) return true;
     _hintInFlight = true;
     try {
-      final movesBefore = state.moveHistory.length;
+      final levelBefore = state.level;
+      final request = _loadRequest;
 
       List<WaterSortMove>? solution = _cachedSolution;
       if (solution == null ||
           solution.isEmpty ||
           !isValidPour(solution.first.fromIndex, solution.first.toIndex)) {
         solution = await compute(LevelSolver.solveTask, state.level!.tubes);
-        _cachedSolution = solution;
       }
 
-      if (state.moveHistory.length != movesBefore ||
+      if (!mounted || request != _loadRequest ||
+          !identical(state.level, levelBefore) ||
           state.isComplete ||
           state.isTimeOut) {
         return false;
       }
+      _cachedSolution = solution;
       if (solution != null && solution.isNotEmpty) {
         HapticFeedback.lightImpact();
         final nextMove = solution.first;
@@ -681,6 +706,9 @@ class GameViewModel extends StateNotifier<GameViewModelState> {
         );
         return true;
       }
+      return false;
+    } catch (e) {
+      debugPrint('GameViewModel: hint failed: $e');
       return false;
     } finally {
       _hintInFlight = false;

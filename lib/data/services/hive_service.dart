@@ -157,6 +157,10 @@ class HiveService {
 
   Future<void> clearProgress(String profileId) async {
     await _progressBox.delete('progress_$profileId');
+    await _settingsBox.deleteAll([
+      '${profileId}_level_stars',
+      '${profileId}_saved_level_state',
+    ]);
   }
 
   String _getActiveProfileIdSync() {

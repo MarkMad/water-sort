@@ -41,6 +41,7 @@ class _GameViewState extends ConsumerState<GameView> {
   void initState() {
     super.initState();
     Future.microtask(() {
+      if (!mounted) return;
       if (widget.isRandom) {
         ref
             .read(gameViewModelProvider.notifier)
