@@ -86,14 +86,10 @@ jobs:
           VERSION: ${{ steps.version.outputs.name }}
         run: |
           mkdir -p dist
-          flutter build apk --release --no-pub
-          cp build/app/outputs/flutter-apk/app-release.apk "dist/water-sort-v$VERSION.apk"
           flutter build apk --release --no-pub --split-per-abi
           for abi in armeabi-v7a arm64-v8a x86_64; do
             cp "build/app/outputs/flutter-apk/app-$abi-release.apk" "dist/water-sort-v$VERSION-$abi.apk"
           done
-          flutter build apk --release --no-pub --android-project-arg=testBuild=true
-          cp build/app/outputs/flutter-apk/app-release.apk "dist/water-sort-test-v$VERSION.apk"
           (cd dist && sha256sum *.apk > SHA256SUMS.txt)
 
       - name: Upload binaries

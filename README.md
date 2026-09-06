@@ -33,19 +33,9 @@ Sort the colored water in the tubes until each tube contains only one color. Sim
 
 Every push to `main` runs the regression tests and builds signed Android binaries with GitHub Actions. Open [Build and Release](https://github.com/MarkMad/water-sort/actions/workflows/build.yml), select a successful run, and download its artifact (retained for 30 days).
 
-The download contains a universal APK, APKs for ARMv7/ARM64/x86-64, a separate **Water Sort Test** APK, and SHA-256 checksums. The test APK installs alongside F-Droid or store copies with independent progress.
+The download contains architecture-specific APKs for ARMv7, ARM64, and x86-64, plus SHA-256 checksums.
 
 Pushing a version tag matching `pubspec.yaml` (for example, `v1.0.15`) automatically publishes the binaries on the Releases page. You can also run the workflow manually and enter the matching tag; leave it blank to generate artifacts only. Signing uses the repository's existing `KEYSTORE_BASE64`, `STORE_PASSWORD`, `KEY_PASSWORD`, and `KEY_ALIAS` secrets.
-
-## Local testing on Android
-
-To install alongside a store or F-Droid copy, build with a separate application ID:
-
-```powershell
-flutter build apk --release --android-project-arg=testBuild=true
-```
-
-This creates **Water Sort Test** (`com.sidhant.watersort.testing`) with its own progress. Normal builds retain the original application ID and name.
 
 ## License
 

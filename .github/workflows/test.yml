@@ -35,6 +35,4 @@ jobs:
           echo "storeFile=upload-keystore.jks" >> android/key.properties
 
       - name: Build Android Artifacts
-        run: |
-          flutter build apk --release
-          flutter build apk --release --split-per-abi
+        run: flutter build apk --release --split-per-abi
