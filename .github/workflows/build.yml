@@ -26,10 +26,10 @@ jobs:
       version: ${{ steps.version.outputs.name }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           distribution: zulu
           java-version: '17'
@@ -94,7 +94,7 @@ jobs:
           (cd dist && sha256sum *.apk *.aab > SHA256SUMS.txt)
 
       - name: Upload binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: water-sort-v${{ steps.version.outputs.name }}-${{ github.run_number }}
           path: dist/
@@ -114,13 +114,13 @@ jobs:
       contents: write
     steps:
       - name: Download binaries
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: water-sort-v${{ needs.build.outputs.version }}-${{ github.run_number }}
           path: dist
 
       - name: Publish GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ inputs.version }}
           target_commitish: ${{ github.sha }}
