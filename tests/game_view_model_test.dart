@@ -65,6 +65,32 @@ class TestGameViewModel extends GameViewModel {
 TestGameViewModel modelFor(FakeHive hive) => TestGameViewModel(hive);
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  test(
+    'Undo becomes unavailable during a pour and returns afterwards',
+    () async {
+      final model = modelFor(
+        FakeHive()
+          ..saved = savedLevel()
+          ..timerEnabled = false,
+      );
+      addTearDown(model.dispose);
+      await model.loadLevel(4);
+      model.selectTube(0);
+      model.selectTube(2);
+      await model.completePendingPour();
+      expect(model.snapshot.canUndo, true);
+
+      model.selectTube(1);
+      model.selectTube(0);
+      expect(model.snapshot.pouringFromIndex, 1);
+      expect(model.snapshot.canUndo, false);
+      final board = model.snapshot.level;
+      model.undoMove();
+      expect(model.snapshot.level, same(board));
+      await model.completePendingPour();
+      expect(model.snapshot.canUndo, true);
+    },
+  );
   for (final random in [false, true]) {
     Future<void> load(GameViewModel model) => random
         ? model.loadRandomLevel('Medium', colorCount: 3, seed: 123)

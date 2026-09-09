@@ -33,28 +33,38 @@ class WaterSortGame extends FlameGame with TapCallbacks {
   int? _layoutCapacity;
 
   void updateState(GameViewModelState newState) {
-    final bool levelChanged = _state.level != newState.level || _tubes.length != (newState.level?.tubes.length ?? 0);
-    if (levelChanged ||
-        _state.selectedTubeIndex != newState.selectedTubeIndex ||
-        _state.hintFromIndex != newState.hintFromIndex ||
-        _state.hintToIndex != newState.hintToIndex ||
-        _state.isSuperHardModeEnabled != newState.isSuperHardModeEnabled ||
-        _state.isBlurSolvedTubesEnabled != newState.isBlurSolvedTubesEnabled ||
-        _state.isInstantPouringEnabled != newState.isInstantPouringEnabled ||
-        _state.isSoundEffectsEnabled != newState.isSoundEffectsEnabled) {
-      _state = newState;
-      if (levelChanged) {
-        _layoutTubes();
-      }
-      _syncTubes();
-    }
+    final bool levelChanged = _state.level?.levelNumber != newState.level?.levelNumber ||
+        _state.isRandomMode != newState.isRandomMode ||
+        _state.randomSeed != newState.randomSeed ||
+        _state.level?.tubeCount != newState.level?.tubeCount;
+    final bool isUndo = !levelChanged &&
+        newState.moveHistory.length < _state.moveHistory.length;
+    final bool boardChanged = !identical(_state.level, newState.level);
+    final bool pourCancelled = newState.pouringFromIndex == null ||
+        newState.isTimeOut || newState.isLoading;
 
-    if (!newState.isInstantPouringEnabled && newState.pouringFromIndex != null && newState.pouringToIndex != null && _activePour == null) {
+    _state = newState;
+    if (levelChanged || isUndo || pourCancelled) {
+      _activePour?.reset();
+      _activePour = null;
+    }
+    if (levelChanged) {
+      _particles.clear();
+      _ripples.clear();
+      for (final tube in _tubes) {
+        tube.sloshDisplacement = 0.0;
+        tube.sloshVelocity = 0.0;
+      }
+    }
+    if (boardChanged) _layoutTubes();
+    _syncTubes(isUndo: isUndo, levelChanged: levelChanged);
+
+    if (!newState.isLoading && !newState.isTimeOut && !newState.isInstantPouringEnabled && newState.pouringFromIndex != null && newState.pouringToIndex != null && _activePour == null) {
       _startLevelAnimation(newState.pouringFromIndex!, newState.pouringToIndex!);
     }
   }
 
-  void _syncTubes() {
+  void _syncTubes({bool isUndo = false, bool levelChanged = false}) {
     final level = _state.level;
     if (level == null) return;
 
@@ -63,7 +73,7 @@ class WaterSortGame extends FlameGame with TapCallbacks {
         final newTube = level.tubes[i];
         final oldTube = _tubes[i].tube;
 
-        if (newTube.isSolved && !oldTube.isSolved && !newTube.isEmpty) {
+        if (!levelChanged && !isUndo && newTube.isSolved && !oldTube.isSolved && !newTube.isEmpty) {
           if (!_state.isInstantPouringEnabled) {
             _spawnVictoryBurst(_tubes[i], newTube.topColor ?? const Color(0xFF00FFCC));
             if (_state.isSoundEffectsEnabled) {
@@ -72,6 +82,9 @@ class WaterSortGame extends FlameGame with TapCallbacks {
           }
         }
 
+        if (isUndo && newTube != oldTube && !_state.isInstantPouringEnabled) {
+          _tubes[i].sloshVelocity += 14.0;
+        }
         _tubes[i].tube = newTube;
         _tubes[i].isSelected = _state.selectedTubeIndex == i;
         _tubes[i].isSuperHardModeEnabled = _state.isSuperHardModeEnabled;
@@ -396,12 +409,8 @@ class WaterSortGame extends FlameGame with TapCallbacks {
 
     for (int i = _ripples.length - 1; i >= 0; i--) {
       final r = _ripples[i];
-      r.life += dt;
-      if (r.life >= r.maxLife) {
+      if (r.update(dt)) {
         _ripples.removeAt(i);
-      } else {
-        final double t = r.life / r.maxLife;
-        r.radius = r.radius + (r.maxRadius - r.radius) * t;
       }
     }
   }
@@ -537,9 +546,20 @@ class TubeComponent extends PositionComponent {
 
     final double springConstant = 120.0;
     final double damping = 4.5;
-    final double acceleration = -springConstant * sloshDisplacement - damping * sloshVelocity;
-    sloshVelocity += acceleration * dt;
-    sloshDisplacement += sloshVelocity * dt;
+    // Only the spring uses bounded substeps. Pours and effect lifetimes still
+    // advance by the full frame duration, including on slower devices.
+    double remaining = dt.clamp(0.0, 0.25);
+    while (remaining > 0.0) {
+      final step = math.min(remaining, 1.0 / 120.0);
+      final acceleration = -springConstant * sloshDisplacement - damping * sloshVelocity;
+      sloshVelocity = (sloshVelocity + acceleration * step).clamp(-60.0, 60.0);
+      sloshDisplacement = (sloshDisplacement + sloshVelocity * step).clamp(-15.0, 15.0);
+      remaining -= step;
+    }
+    if (sloshDisplacement.abs() < 0.01 && sloshVelocity.abs() < 0.01) {
+      sloshDisplacement = 0.0;
+      sloshVelocity = 0.0;
+    }
 
     if (isSelected) {
       position.y = originalPosition.y - 18 + 3.0 * math.sin(time * 6.0);
@@ -1140,7 +1160,16 @@ class TapRipple {
     required this.life,
     required this.maxLife,
     required this.color,
-  });
+  }) : _initialRadius = radius;
+
+  final double _initialRadius;
+
+  bool update(double dt) {
+    life += dt;
+    final progress = (life / maxLife).clamp(0.0, 1.0);
+    radius = _initialRadius + (maxRadius - _initialRadius) * progress;
+    return life >= maxLife;
+  }
 
   Vector2 position;
   double radius;

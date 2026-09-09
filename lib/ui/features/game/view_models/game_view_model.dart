@@ -71,7 +71,8 @@ class GameViewModelState {
   final int? hintFromIndex;
   final int? hintToIndex;
 
-  bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut;
+  bool get canUndo => moveHistory.isNotEmpty && !isComplete && !isTimeOut &&
+      pouringFromIndex == null;
 
   int get earnedStars => calculateStars(
     moves: moveCount,

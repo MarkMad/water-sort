@@ -75,20 +75,17 @@ class _GameViewState extends ConsumerState<GameView> {
   Widget build(BuildContext context) {
     final state = ref.watch(gameViewModelProvider);
     if (state.level != null) {
-      if (_game == null) {
-        _game = WaterSortGame(
-          initialState: state,
-          onTubeTap: (index) {
-            ref.read(gameViewModelProvider.notifier).selectTube(index);
-          },
-          onPourComplete: () {
-            ref.read(gameViewModelProvider.notifier).completePendingPour();
-          },
-        );
-      } else {
-        _game!.updateState(state);
-      }
+      _game ??= WaterSortGame(
+        initialState: state,
+        onTubeTap: (index) {
+          ref.read(gameViewModelProvider.notifier).selectTube(index);
+        },
+        onPourComplete: () {
+          ref.read(gameViewModelProvider.notifier).completePendingPour();
+        },
+      );
     }
+    _game?.updateState(state);
 
     ref.listen<GameViewModelState>(gameViewModelProvider, (prev, next) {
       if (next.isComplete && !(prev?.isComplete ?? false)) {
